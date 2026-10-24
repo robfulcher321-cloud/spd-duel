@@ -622,6 +622,8 @@ public class Dungeon {
 	private static final String BADGES		= "badges";
 	
 	public static void saveGame( int save ) {
+		//SPD Duel: the duel runs on a copy of a saved hero in memory; never write it back
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) return;
 		try {
 			Bundle bundle = new Bundle();
 
@@ -697,6 +699,7 @@ public class Dungeon {
 	}
 	
 	public static void saveLevel( int save ) throws IOException {
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) return;
 		Bundle bundle = new Bundle();
 		bundle.put( LEVEL, level );
 		
@@ -704,6 +707,7 @@ public class Dungeon {
 	}
 	
 	public static void saveAll() throws IOException {
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) return;
 		if (hero != null && (hero.isAlive() || WndResurrect.instance != null)) {
 			
 			Actor.fixTime();

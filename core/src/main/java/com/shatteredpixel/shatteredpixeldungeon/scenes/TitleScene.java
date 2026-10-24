@@ -86,6 +86,10 @@ public class TitleScene extends PixelScene {
 		
 		super.create();
 
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
+		}
+
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},
 				new float[]{1, 1},
@@ -171,7 +175,13 @@ public class TitleScene extends PixelScene {
 		btnPlay.icon(Icons.get(Icons.ENTER));
 		add(btnPlay);
 
-		btnSupport = new SupportButton(GREY_TR, Messages.get(this, "support"));
+		btnSupport = new StyledButton(GREY_TR, "Duel"){
+			@Override
+			protected void onClick() {
+				ShatteredPixelDungeon.scene().addToFront(new com.shatteredpixel.shatteredpixeldungeon.duel.WndDuel());
+			}
+		};
+		btnSupport.icon(Icons.get(Icons.CHALLENGE_COLOR));
 		add(btnSupport);
 
 		btnRankings = new StyledButton(GREY_TR,Messages.get(this, "rankings")){

@@ -1,0 +1,291 @@
+/*
+ * SPD Duel - a 1v1 PvP mod of Shattered Pixel Dungeon
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ */
+
+package com.shatteredpixel.shatteredpixeldungeon.duel;
+
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
+import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
+import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
+import com.watabou.noosa.Game;
+import com.watabou.noosa.ui.Component;
+
+import java.util.ArrayList;
+
+/** Title-screen menus for setting up a duel. */
+public class WndDuel extends WndOptions {
+
+	private static final int WIDTH_P = 120;
+	private static final int WIDTH_L = 144;
+
+	public WndDuel() {
+		super("Duel",
+				"Fight another player's hero, phone to phone on the same Wi-Fi. " +
+				"You fight with the hero from one of your saved runs; the run itself isn't changed.",
+				"Host a duel", "Join a duel");
+	}
+
+	@Override
+	protected void onSelect(int index) {
+		pickHero(index == 0);
+	}
+
+	private static void show(Window w) {
+		Game.scene().addToFront(w);
+	}
+
+	private static int width() {
+		return PixelScene.landscape() ? WIDTH_L : WIDTH_P;
+	}
+
+	// ------------------------------------------------------------------ hero picker
+
+	private static void pickHero(final boolean hosting) {
+		final ArrayList<GamesInProgress.Info> runs = GamesInProgress.checkAll();
+		if (runs.isEmpty()) {
+			show(new WndOptions("No heroes yet",
+					"Start a run first. Any hero from a saved run can be brought into a duel.",
+					"OK"));
+			return;
+		}
+
+		String[] labels = new String[runs.size()];
+		for (int i = 0; i < runs.size(); i++) {
+			GamesInProgress.Info info = runs.get(i);
+			String cls = info.subClass != null && info.subClass.ordinal() != 0
+					? info.subClass.title() : info.heroClass.title();
+			labels[i] = Messages.capitalize(cls) + ", lvl " + info.level + " (depth " + info.depth + ")";
+		}
+
+		show(new WndOptions("Choose your hero", "Which saved hero will you fight with?", labels) {
+			@Override
+			protected void onSelect(int index) {
+				int slot = runs.get(index).slot;
+				try {
+					DuelGame.prepareHero(slot);
+				} catch (Exception e) {
+					ShatteredPixelDungeon.reportException(e);
+					show(new WndOptions("Couldn't load hero", "That save couldn't be read.", "OK"));
+					return;
+				}
+				if (hosting) {
+					startHosting();
+				} else {
+					show(new WndJoin());
+				}
+			}
+		});
+	}
+
+	// ------------------------------------------------------------------ hosting
+
+	private static void startHosting() {
+		final WndStatus status = new WndStatus("Hosting",
+				"Waiting for an opponent...\n\n" +
+				"On the other phone: Duel > Join a duel. If your game doesn't show up there, " +
+				"enter this IP: " + DuelNet.localIp() + "\n\nBoth phones must be on the same Wi-Fi " +
+				"(a phone hotspot works too).");
+		show(status);
+		DuelGame.hostLobby(status);
+	}
+
+	// ------------------------------------------------------------------ status window
+
+	public static class WndStatus extends Window implements DuelGame.LobbyListener {
+
+		private final RenderedTextBlock title;
+		private final RenderedTextBlock text;
+		private final RedButton cancel;
+
+		public WndStatus(String titleText, String message) {
+			super();
+
+			title = PixelScene.renderTextBlock(titleText, 9);
+			title.hardlight(TITLE_COLOR);
+			add(title);
+
+			text = PixelScene.renderTextBlock(6);
+			add(text);
+
+			cancel = new RedButton("Cancel") {
+				@Override
+				protected void onClick() {
+					DuelGame.cancelLobby();
+					WndStatus.this.hide();
+				}
+			};
+			add(cancel);
+
+			setMessage(message);
+		}
+
+		private void setMessage(String message) {
+			int w = width();
+			title.maxWidth(w);
+			title.setPos(0, 2);
+			text.text(message, w);
+			text.setPos(0, title.bottom() + 4);
+			cancel.setRect(0, text.bottom() + 6, w, 18);
+			resize(w, (int) cancel.bottom());
+		}
+
+		@Override
+		public void onBackPressed() {
+			DuelGame.cancelLobby();
+			super.onBackPressed();
+		}
+
+		@Override
+		public void onStatus(String message) {
+			if (parent != null) setMessage(message);
+		}
+
+		@Override
+		public void onFailed(String reason) {
+			if (parent != null) hide();
+			show(new WndOptions("Duel cancelled", reason, "OK"));
+		}
+	}
+
+	// ------------------------------------------------------------------ joining
+
+	public static class WndJoin extends Window {
+
+		private final ArrayList<Component> parts = new ArrayList<>();
+		private String shownHosts = null;
+		private float refresh = 0;
+
+		public WndJoin() {
+			super();
+			DuelNet.startDiscovery();
+			rebuild(new ArrayList<DuelNet.FoundHost>());
+		}
+
+		@Override
+		public synchronized void update() {
+			super.update();
+			refresh -= Game.elapsed;
+			if (refresh <= 0) {
+				refresh = 0.5f;
+				ArrayList<DuelNet.FoundHost> hosts = DuelNet.foundHosts();
+				StringBuilder key = new StringBuilder();
+				for (DuelNet.FoundHost h : hosts) key.append(h.ip).append(h.label).append(';');
+				if (!key.toString().equals(shownHosts)) {
+					rebuild(hosts);
+				}
+			}
+		}
+
+		private void rebuild(ArrayList<DuelNet.FoundHost> hosts) {
+			StringBuilder key = new StringBuilder();
+			for (DuelNet.FoundHost h : hosts) key.append(h.ip).append(h.label).append(';');
+			shownHosts = key.toString();
+
+			for (Component c : parts) {
+				remove(c);
+				c.destroy();
+			}
+			parts.clear();
+
+			int w = width();
+			float y = 2;
+
+			RenderedTextBlock title = PixelScene.renderTextBlock("Join a duel", 9);
+			title.hardlight(TITLE_COLOR);
+			title.maxWidth(w);
+			title.setPos(0, y);
+			add(title);
+			parts.add(title);
+			y = title.bottom() + 4;
+
+			RenderedTextBlock text = PixelScene.renderTextBlock(6);
+			text.text(hosts.isEmpty()
+					? "Looking for duels on this Wi-Fi...\n\nIf nothing appears after a few seconds, enter the IP shown on the host's phone."
+					: "Tap a game to join it:", w);
+			text.setPos(0, y);
+			add(text);
+			parts.add(text);
+			y = text.bottom() + 6;
+
+			for (final DuelNet.FoundHost h : hosts) {
+				RedButton b = new RedButton(h.label + "  (" + h.ip + ")") {
+					@Override
+					protected void onClick() {
+						connect(h.ip);
+					}
+				};
+				b.multiline = true;
+				b.setRect(0, y, w, 18);
+				add(b);
+				parts.add(b);
+				y = b.bottom() + 2;
+			}
+
+			RedButton manual = new RedButton("Enter IP address") {
+				@Override
+				protected void onClick() {
+					show(new WndTextInput("Host's IP address",
+							"Type the IP shown on the host's screen, e.g. 192.168.1.20",
+							"192.168.", 40, false, "Join", "Cancel") {
+						@Override
+						public void onSelect(boolean positive, String ip) {
+							if (positive && ip != null && !ip.trim().isEmpty()) {
+								connect(ip.trim());
+							}
+						}
+					});
+				}
+			};
+			manual.setRect(0, y + 4, w, 18);
+			add(manual);
+			parts.add(manual);
+			y = manual.bottom() + 2;
+
+			RedButton cancel = new RedButton("Cancel") {
+				@Override
+				protected void onClick() {
+					onBackPressed();
+				}
+			};
+			cancel.setRect(0, y, w, 18);
+			add(cancel);
+			parts.add(cancel);
+			y = cancel.bottom();
+
+			resize(w, (int) y);
+		}
+
+		private void connect(String ip) {
+			DuelNet.stopDiscovery();
+			hide();
+			WndStatus status = new WndStatus("Joining", "Connecting to " + ip + "...");
+			show(status);
+			DuelGame.joinLobby(ip, status);
+		}
+
+		@Override
+		public void onBackPressed() {
+			DuelNet.stopDiscovery();
+			super.onBackPressed();
+		}
+	}
+}

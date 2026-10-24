@@ -2172,6 +2172,14 @@ public class Hero extends Char {
 		
 		curAction = null;
 
+		//SPD Duel: no ankhs, no game over, no deleted save - just lose the duel
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
+			Actor.fixTime();
+			super.die( cause );
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.onLocalDeath();
+			return;
+		}
+
 		Ankh ankh = null;
 
 		//look for ankhs in player inventory, prioritize ones which are blessed.

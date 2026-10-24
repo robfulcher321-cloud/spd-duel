@@ -118,8 +118,18 @@ public class InterlevelScene extends PixelScene {
 	}
 	
 	@Override
+	//SPD Duel: anything that would take the hero off the arena (beacons, passage...) forfeits the duel
+	private boolean duelAborted = false;
+
 	public void create() {
 		super.create();
+
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
+			duelAborted = true;
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
+			ShatteredPixelDungeon.switchNoFade(TitleScene.class);
+			return;
+		}
 		
 		String loadingAsset;
 		int loadingDepth;
@@ -467,6 +477,7 @@ public class InterlevelScene extends PixelScene {
 	@Override
 	public void update() {
 		super.update();
+		if (duelAborted) return;
 
 		if (btnContinue == null || !btnContinue.isActive()) {
 			waitingTime += Game.elapsed;
