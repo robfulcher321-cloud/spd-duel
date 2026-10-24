@@ -85,6 +85,13 @@ public class DuelArenaLevel extends Level {
 
 	@Override
 	protected boolean build() {
+		//the base level code may have rolled a random floor feeling (dark, etc.) from this
+		//player's run seed; the arena must look and play the same on both phones
+		feeling = Feeling.NONE;
+		viewDistance = 12;
+		//locked like a boss arena: no hunger, no walking out through transitions
+		locked = true;
+
 		setSize(W, H);
 		for (int y = 0; y < H; y++) {
 			for (int x = 0; x < W; x++) {

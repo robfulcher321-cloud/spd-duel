@@ -50,6 +50,7 @@ public class DuelOpponent extends Mob {
 
 	private Hero ghost;
 	private volatile boolean waiting = false;
+	private boolean announced = false;
 	private boolean reportedSinceLastTurn;
 
 	private int pendingDamage = 0;
@@ -155,6 +156,11 @@ public class DuelOpponent extends Mob {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
 		Dungeon.level.updateFieldOfView(this, fieldOfView);
+
+		if (!announced) {
+			announced = true;
+			GLog.h("Duel against " + name() + "! " + (DuelGame.isHost() ? "You moved first." : "They move first."));
+		}
 
 		if (!DuelGame.active() || DuelGame.isOver()) {
 			waiting = false;

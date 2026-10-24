@@ -27,7 +27,6 @@ import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.GameLog;
-import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
@@ -270,7 +269,6 @@ public class DuelGame {
 		Dungeon.switchLevel(arena, mySpawn);
 		Actor.delayChar(me, -me.cooldown());
 
-		GLog.h("The duel begins! " + (host ? "You move first." : "Your opponent moves first."));
 		Game.switchScene(GameScene.class);
 	}
 
