@@ -117,10 +117,10 @@ public class InterlevelScene extends PixelScene {
 		inGameScene = true;
 	}
 	
-	@Override
 	//SPD Duel: anything that would take the hero off the arena (beacons, passage...) forfeits the duel
 	private boolean duelAborted = false;
 
+	@Override
 	public void create() {
 		super.create();
 
