@@ -18,6 +18,13 @@
 package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.items.BrokenSeal;
+import com.shatteredpixel.shatteredpixeldungeon.items.armor.MailArmor;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
+import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
+import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
@@ -32,6 +39,7 @@ import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.SparseArray;
 
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -94,14 +102,65 @@ public class DuelGame {
 		if (h == null) throw new Exception("That save has no hero");
 
 		h.HP = h.HT; //everyone starts the fight at full health
+		buildHello(h, Messages.capitalize(h.heroClass.title()) + " (lvl " + h.lvl + ")");
+	}
 
+	public static final int TEST_LEVEL = 12;
+
+	/**
+	 * Makes a ready-to-fight hero of the given class without touching any save:
+	 * level 12, tier 1 and 2 talents filled in, class weapon +3, mail armour +2,
+	 * 13 strength and two healing potions. Every class gets the same budget.
+	 */
+	public static void prepareTestHero(HeroClass cls) {
+		GamesInProgress.selectedClass = cls;
+		Dungeon.seed = DungeonSeed.randomSeed();
+		Dungeon.customSeedText = "";
+		Dungeon.daily = Dungeon.dailyReplay = false;
+		Dungeon.init(); //makes a fresh hero with the class's normal starting kit
+
+		Hero h = Dungeon.hero;
+		h.duelSetLevel(TEST_LEVEL);
+		h.STR = 13; //base 10 plus the ~3 strength potions found by this point
+
+		//spend every available talent point, filling talents in listed order
+		for (int tier = 1; tier <= Math.min(h.talents.size(), Talent.MAX_TALENT_TIERS); tier++) {
+			int points = h.talentPointsAvailable(tier);
+			for (Talent t : new ArrayList<>(h.talents.get(tier - 1).keySet())) {
+				while (points > 0 && h.pointsInTalent(t) < t.maxPoints()) {
+					h.duelGiveTalentPoint(t);
+					points--;
+				}
+			}
+		}
+
+		if (h.belongings.weapon != null) {
+			h.belongings.weapon.upgrade(3);
+		}
+
+		MailArmor armor = new MailArmor();
+		armor.upgrade(2);
+		armor.identify();
+		if (cls == HeroClass.WARRIOR) {
+			armor.affixSeal(new BrokenSeal());
+		}
+		h.belongings.armor = armor;
+
+		PotionOfHealing healing = new PotionOfHealing();
+		healing.quantity(2).identify();
+		healing.collect();
+
+		buildHello(h, "Test " + Messages.capitalize(cls.title()) + " (lvl " + h.lvl + ")");
+	}
+
+	private static void buildHello(Hero h, String name) {
 		myHello = new Bundle();
 		myHello.put("type", "hello");
 		myHello.put("protocol", PROTOCOL);
 		myHello.put("hero", h);
 		myHello.put("cls", h.heroClass);
 		myHello.put("tier", h.tier());
-		myHello.put("name", h.heroClass.title() + " (lvl " + h.lvl + ")");
+		myHello.put("name", name);
 	}
 
 	public static String myLabel() {

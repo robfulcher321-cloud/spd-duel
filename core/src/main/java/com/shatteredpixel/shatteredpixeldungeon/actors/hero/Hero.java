@@ -373,6 +373,28 @@ public class Hero extends Char {
 		return 0;
 	}
 
+	//SPD Duel: raises a freshly made hero to a level for test fighters, without
+	//level-up messages, sounds or badges
+	public void duelSetLevel( int newLvl ){
+		while (lvl < newLvl && lvl < MAX_LEVEL){
+			lvl++;
+			attackSkill++;
+			defenseSkill++;
+		}
+		updateHT( true );
+		HP = HT;
+	}
+
+	//SPD Duel: puts talent points straight into the talent table, skipping the
+	//on-upgrade effects (some of those need a level to exist)
+	public void duelGiveTalentPoint( Talent talent ){
+		for (LinkedHashMap<Talent, Integer> tier : talents){
+			for (Talent f : tier.keySet()){
+				if (f == talent) tier.put(talent, tier.get(talent)+1);
+			}
+		}
+	}
+
 	public void upgradeTalent( Talent talent ){
 		for (LinkedHashMap<Talent, Integer> tier : talents){
 			for (Talent f : tier.keySet()){

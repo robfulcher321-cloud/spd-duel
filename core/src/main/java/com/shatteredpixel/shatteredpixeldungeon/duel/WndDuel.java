@@ -19,6 +19,8 @@ package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
@@ -61,24 +63,28 @@ public class WndDuel extends WndOptions {
 
 	private static void pickHero(final boolean hosting) {
 		final ArrayList<GamesInProgress.Info> runs = GamesInProgress.checkAll();
-		if (runs.isEmpty()) {
-			show(new WndOptions("No heroes yet",
-					"Start a run first. Any hero from a saved run can be brought into a duel.",
-					"OK"));
-			return;
-		}
 
-		String[] labels = new String[runs.size()];
+		//saved runs first, then the ready-made test fighters
+		String[] labels = new String[runs.size() + 1];
 		for (int i = 0; i < runs.size(); i++) {
 			GamesInProgress.Info info = runs.get(i);
-			String cls = info.subClass != null && info.subClass.ordinal() != 0
+			String cls = info.subClass != null && info.subClass != HeroSubClass.NONE
 					? info.subClass.title() : info.heroClass.title();
 			labels[i] = Messages.capitalize(cls) + ", lvl " + info.level + " (depth " + info.depth + ")";
 		}
+		labels[runs.size()] = "Test fighter (pick any class)";
 
-		show(new WndOptions("Choose your hero", "Which saved hero will you fight with?", labels) {
+		show(new WndOptions("Choose your hero",
+				runs.isEmpty()
+					? "You have no saved runs yet, but you can fight with a ready-made test fighter."
+					: "Fight with a hero from a saved run, or a ready-made test fighter.",
+				labels) {
 			@Override
 			protected void onSelect(int index) {
+				if (index == runs.size()) {
+					pickTestFighter(hosting);
+					return;
+				}
 				int slot = runs.get(index).slot;
 				try {
 					DuelGame.prepareHero(slot);
@@ -87,13 +93,42 @@ public class WndDuel extends WndOptions {
 					show(new WndOptions("Couldn't load hero", "That save couldn't be read.", "OK"));
 					return;
 				}
-				if (hosting) {
-					startHosting();
-				} else {
-					show(new WndJoin());
-				}
+				heroReady(hosting);
 			}
 		});
+	}
+
+	private static void pickTestFighter(final boolean hosting) {
+		final HeroClass[] classes = HeroClass.values();
+		String[] labels = new String[classes.length];
+		for (int i = 0; i < classes.length; i++) {
+			labels[i] = Messages.capitalize(classes[i].title());
+		}
+		show(new WndOptions("Test fighter",
+				"Every test fighter is level " + DuelGame.TEST_LEVEL + " with its class weapon +3, " +
+				"mail armour +2, 13 strength, two healing potions and its first talents filled in. " +
+				"No subclass yet.",
+				labels) {
+			@Override
+			protected void onSelect(int index) {
+				try {
+					DuelGame.prepareTestHero(classes[index]);
+				} catch (Exception e) {
+					ShatteredPixelDungeon.reportException(e);
+					show(new WndOptions("Couldn't make fighter", "Something went wrong building that hero.", "OK"));
+					return;
+				}
+				heroReady(hosting);
+			}
+		});
+	}
+
+	private static void heroReady(boolean hosting) {
+		if (hosting) {
+			startHosting();
+		} else {
+			show(new WndJoin());
+		}
 	}
 
 	// ------------------------------------------------------------------ hosting
