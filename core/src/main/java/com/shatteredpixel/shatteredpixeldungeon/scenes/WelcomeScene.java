@@ -81,6 +81,9 @@ public class WelcomeScene extends PixelScene {
 			return;
 		}
 
+		//SPD Duel: always land on the title screen (where the Duel button is), never auto-start the tutorial run
+		SPDSettings.intro(false);
+
 		if (ShatteredPixelDungeon.versionCode == previousVersion && !SPDSettings.intro()) {
 			ShatteredPixelDungeon.switchNoFade(TitleScene.class);
 			return;
@@ -156,12 +159,8 @@ public class WelcomeScene extends PixelScene {
 					SPDSettings.version(ShatteredPixelDungeon.versionCode);
 					GamesInProgress.selectedClass = null;
 					GamesInProgress.curSlot = GamesInProgress.firstEmpty();
-					if (GamesInProgress.curSlot == -1 || Rankings.INSTANCE.totalNumber > 0){
-						SPDSettings.intro(false);
-						ShatteredPixelDungeon.switchScene(TitleScene.class);
-					} else {
-						ShatteredPixelDungeon.switchScene(HeroSelectScene.class);
-					}
+					SPDSettings.intro(false);
+					ShatteredPixelDungeon.switchScene(TitleScene.class);
 				} else {
 					updateVersion(previousVersion);
 					ShatteredPixelDungeon.switchScene(TitleScene.class);
