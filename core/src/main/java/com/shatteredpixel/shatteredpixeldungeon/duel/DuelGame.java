@@ -219,6 +219,10 @@ public class DuelGame {
 		buildHello(h, Messages.capitalize(sub.title()) + " (lvl " + h.lvl + ")");
 	}
 
+	static Bundle helloForTest() {
+		return myHello;
+	}
+
 	private static void buildHello(Hero h, String name) {
 		myHello = new Bundle();
 		myHello.put("type", "hello");

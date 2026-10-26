@@ -33,11 +33,25 @@ jobs:
           SPD_BUILD=${{ github.run_number }} ./gradlew --no-daemon --stacktrace android:assembleDebug 2>&1 | tee build.log
         continue-on-error: true
 
+      - name: Self-test (desktop build on a virtual screen)
+        id: selftest
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null
+          set -o pipefail
+          SPD_SELFTEST=1 SPD_BUILD=${{ github.run_number }} timeout 900 xvfb-run -a -s "-screen 0 1280x1024x24" \
+            ./gradlew --no-daemon desktop:debug 2>&1 | tee selftest.log
+          grep -q "SELFTEST PASS" selftest.log
+
       - name: Publish build log to ci-log branch
         if: always()
         run: |
           mkdir -p /tmp/log && cp build.log /tmp/log/ 2>/dev/null || echo "no log" > /tmp/log/build.log
+          cp selftest.log /tmp/log/ 2>/dev/null || true
+          cp -r desktop/selftest /tmp/log/screens 2>/dev/null || true
           echo "result=${{ steps.build.outcome }}" > /tmp/log/status.txt
+          echo "selftest=${{ steps.selftest.outcome }}" >> /tmp/log/status.txt
           echo "commit=${{ github.sha }}" >> /tmp/log/status.txt
           cd /tmp/log
           git init -q -b ci-log

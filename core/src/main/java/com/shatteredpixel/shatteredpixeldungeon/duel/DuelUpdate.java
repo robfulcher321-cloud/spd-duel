@@ -52,7 +52,7 @@ public class DuelUpdate {
 
 	/** Called by the title screen. Only checks once per app launch, quietly, off the main thread. */
 	public static void checkOnce() {
-		if (checked) return;
+		if (checked || DuelSelfTest.enabled()) return;
 		checked = true;
 
 		Thread t = new Thread("Duel update check") {
@@ -71,6 +71,10 @@ public class DuelUpdate {
 		};
 		t.setDaemon(true);
 		t.start();
+	}
+
+	static int fetchLatestForTest() {
+		return fetchLatestBuild();
 	}
 
 	private static int fetchLatestBuild() {

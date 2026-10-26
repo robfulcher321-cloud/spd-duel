@@ -90,6 +90,7 @@ public class TitleScene extends PixelScene {
 			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
 		}
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelUpdate.checkOnce();
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelSelfTest.startIfEnabled(this);
 
 		Music.INSTANCE.playTracks(
 				new String[]{Assets.Music.THEME_1, Assets.Music.THEME_2},

@@ -126,7 +126,7 @@ public class WndDuel extends WndOptions {
 		});
 	}
 
-	private static void pickTestFighter(final boolean hosting) {
+	static void pickTestFighter(final boolean hosting) {
 		show(new WndOptions("Test fighter", "How far along should your fighter be?",
 				"Mid-game (level " + DuelGame.TEST_LEVEL + ")",
 				"Endgame (level " + DuelGame.ENDGAME_LEVEL + ")") {
@@ -164,7 +164,7 @@ public class WndDuel extends WndOptions {
 		});
 	}
 
-	private static void pickTestClass(final boolean hosting, final boolean endgame) {
+	static void pickTestClass(final boolean hosting, final boolean endgame) {
 		final HeroClass[] classes = HeroClass.values();
 		String[] labels = new String[classes.length];
 		for (int i = 0; i < classes.length; i++) {
@@ -204,7 +204,7 @@ public class WndDuel extends WndOptions {
 		});
 	}
 
-	private static void pickSubclass(final boolean hosting, final HeroClass cls) {
+	static void pickSubclass(final boolean hosting, final HeroClass cls) {
 		final HeroSubClass[] subs = cls.subClasses();
 		String[] labels = new String[subs.length];
 		for (int i = 0; i < subs.length; i++) {
@@ -234,7 +234,7 @@ public class WndDuel extends WndOptions {
 		});
 	}
 
-	private static void pickAbility(final boolean hosting, final HeroClass cls, final HeroSubClass sub) {
+	static void pickAbility(final boolean hosting, final HeroClass cls, final HeroSubClass sub) {
 		final ArmorAbility[] abilities = cls.armorAbilities();
 		String[] labels = new String[abilities.length];
 		for (int i = 0; i < abilities.length; i++) {

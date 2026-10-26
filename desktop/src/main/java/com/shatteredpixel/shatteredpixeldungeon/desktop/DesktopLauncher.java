@@ -73,6 +73,13 @@ public class DesktopLauncher {
 		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			@Override
 			public void uncaughtException(Thread thread, Throwable throwable) {
+				if (System.getenv("SPD_SELFTEST") != null) {
+					//automated test run: print the crash and quit, no dialog boxes
+					System.out.println("SELFTEST CRASH");
+					throwable.printStackTrace(System.out);
+					System.out.flush();
+					System.exit(1);
+				}
 				Game.reportException(throwable);
 				StringWriter sw = new StringWriter();
 				PrintWriter pw = new PrintWriter(sw);
@@ -177,6 +184,14 @@ public class DesktopLauncher {
 		config.setWindowedMode( p.x, p.y );
 
 		config.setMaximized(SPDSettings.windowMaximized());
+
+		//SPD Duel automated test: a phone-shaped window, no audio device needed
+		if (System.getenv("SPD_SELFTEST") != null) {
+			config.setWindowSizeLimits( 300, 300, -1, -1 );
+			config.setWindowedMode( 405, 720 );
+			config.setMaximized( false );
+			config.disableAudio( true );
+		}
 
 		//going fullscreen on launch is a bit buggy
 		// so game always starts windowed and then switches in DesktopPlatformSupport.updateSystemUI
