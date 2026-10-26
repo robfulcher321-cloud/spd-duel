@@ -147,7 +147,7 @@ public class DuelGame {
 	 * Mid-game test fighter: level 12, tier 1 and 2 talents filled in, class weapon +3,
 	 * mail armour +2, 13 strength and two healing potions. Every class gets the same budget.
 	 */
-	public static void prepareTestHero(HeroClass cls) {
+	public static void prepareTestHero(HeroClass cls, DuelLoadout loadout) {
 		Hero h = freshHero(cls);
 		h.duelSetLevel(TEST_LEVEL);
 		h.STR = 13; //base 10 plus the ~3 strength potions found by this point
@@ -166,6 +166,7 @@ public class DuelGame {
 		h.belongings.armor = armor;
 
 		giveHealing(2);
+		if (loadout != null) loadout.apply(h, false);
 
 		buildHello(h, "Test " + Messages.capitalize(cls.title()) + " (lvl " + h.lvl + ")");
 	}
@@ -175,7 +176,7 @@ public class DuelGame {
 	 * talent point spent, class weapon +10, plate-based class armour +10 (ability fully
 	 * charged), 18 strength, a maxed class artifact and three healing potions.
 	 */
-	public static void prepareEndgameHero(HeroClass cls, HeroSubClass sub, ArmorAbility ability) {
+	public static void prepareEndgameHero(HeroClass cls, HeroSubClass sub, ArmorAbility ability, DuelLoadout loadout) {
 		Hero h = freshHero(cls);
 		h.duelSetLevel(ENDGAME_LEVEL);
 		h.STR = 18; //base 10 plus all 8 strength potions in a run
@@ -213,6 +214,7 @@ public class DuelGame {
 		}
 
 		giveHealing(3);
+		if (loadout != null) loadout.apply(h, true);
 
 		buildHello(h, Messages.capitalize(sub.title()) + " (lvl " + h.lvl + ")");
 	}

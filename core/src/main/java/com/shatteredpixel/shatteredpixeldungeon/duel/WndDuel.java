@@ -162,12 +162,21 @@ public class WndDuel extends WndOptions {
 		});
 	}
 
-	private static void build(boolean hosting, HeroClass cls, HeroSubClass sub, ArmorAbility ability) {
+	private static void build(final boolean hosting, final HeroClass cls, final HeroSubClass sub, final ArmorAbility ability) {
+		show(new WndLoadout(cls, sub != null, new WndLoadout.Done() {
+			@Override
+			public void onReady(DuelLoadout loadout) {
+				buildWith(hosting, cls, sub, ability, loadout);
+			}
+		}));
+	}
+
+	private static void buildWith(boolean hosting, HeroClass cls, HeroSubClass sub, ArmorAbility ability, DuelLoadout loadout) {
 		try {
 			if (sub == null) {
-				DuelGame.prepareTestHero(cls);
+				DuelGame.prepareTestHero(cls, loadout);
 			} else {
-				DuelGame.prepareEndgameHero(cls, sub, ability);
+				DuelGame.prepareEndgameHero(cls, sub, ability, loadout);
 			}
 		} catch (Exception e) {
 			ShatteredPixelDungeon.reportException(e);
