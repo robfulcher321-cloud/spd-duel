@@ -132,6 +132,9 @@ public class AndroidLauncher extends AndroidApplication {
 			instance = this;
 		}
 
+		//SPD Duel: in-game updates
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelUpdate.installer = new AndroidDuelInstaller(this);
+
 		//Shattered still overrides the back gesture behaviour, but we need to do it in a new way
 		// (API added in Android 13, functionality enforced in Android 16)
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

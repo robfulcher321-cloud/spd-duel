@@ -17,6 +17,8 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.duel;
 
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
@@ -55,16 +57,30 @@ public class DuelInfo {
 		Game.scene().addToFront(w);
 	}
 
-	public static void heroClass(HeroClass cls) {
-		show(new WndHeroInfo(cls));
+	/**
+	 * The game's talent icons (e.g. Heroic Energy) look up "the current hero's class", which
+	 * doesn't exist on the title screen. Point them at the class being viewed while the window is built.
+	 */
+	private interface Build { Window make(); }
+
+	private static void showForClass(HeroClass cls, Build b) {
+		//these menus are only reachable from the title screen, before a fighter is built, so
+		//no hero is in play; leave the class set so tabs opened later in the window also work
+		Dungeon.hero = null;
+		GamesInProgress.selectedClass = cls;
+		show(b.make());
 	}
 
-	public static void subclass(HeroClass cls, HeroSubClass sub) {
-		show(new WndInfoSubclass(cls, sub));
+	public static void heroClass(final HeroClass cls) {
+		showForClass(cls, new Build() { public Window make() { return new WndHeroInfo(cls); } });
 	}
 
-	public static void ability(HeroClass cls, ArmorAbility ability) {
-		show(new WndInfoArmorAbility(cls, ability));
+	public static void subclass(final HeroClass cls, final HeroSubClass sub) {
+		showForClass(cls, new Build() { public Window make() { return new WndInfoSubclass(cls, sub); } });
+	}
+
+	public static void ability(final HeroClass cls, final ArmorAbility ability) {
+		showForClass(cls, new Build() { public Window make() { return new WndInfoArmorAbility(cls, ability); } });
 	}
 
 	public static void message(Image icon, String title, String text) {

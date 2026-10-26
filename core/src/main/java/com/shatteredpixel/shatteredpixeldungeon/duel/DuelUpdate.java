@@ -103,19 +103,146 @@ public class DuelUpdate {
 		}
 	}
 
+	// ------------------------------------------------------------------ installing inside the game
+
+	/** Provided by the Android launcher; null on platforms that can't install (falls back to the browser). */
+	public interface Installer {
+		boolean needsPermission();
+		void openPermissionSettings();
+		void downloadAndInstall(String url, Progress p);
+	}
+
+	public interface Progress {
+		void progress(float fraction);
+		void installing();
+		void failed(String reason);
+	}
+
+	public static Installer installer;
+
 	private static void offer(int latest) {
 		if (!(Game.scene() instanceof TitleScene)) return;
 		Game.scene().addToFront(new WndOptions(Icons.get(Icons.CHANGES), "Update available",
 				"SPD Duel build " + latest + " is out (you have build " + myBuild() + ").\n\n" +
-				"Tap Download, then open the download and tap Install or Update. It installs over this " +
-				"version and keeps your heroes. Both duel players need the same build.",
-				"Download", "Later") {
+				"It downloads and installs from inside the game and keeps your heroes. " +
+				"Both duel players need the same build.",
+				"Update now", "Later") {
 			@Override
 			protected void onSelect(int index) {
-				if (index == 0) {
-					ShatteredPixelDungeon.platform.openURI(APK_URL);
-				}
+				if (index == 0) startUpdate();
 			}
 		});
+	}
+
+	public static void startUpdate() {
+		if (installer == null) {
+			ShatteredPixelDungeon.platform.openURI(APK_URL);
+			return;
+		}
+		if (installer.needsPermission()) {
+			Game.scene().addToFront(new WndOptions(Icons.get(Icons.WARNING), "One-time permission",
+					"Android needs you to allow SPD Duel to install updates.\n\n" +
+					"Tap Open settings, switch on \"Allow from this source\", then come back and tap Update now.",
+					"Open settings", "Update now", "Cancel") {
+				@Override
+				protected void onSelect(int index) {
+					if (index == 0) {
+						installer.openPermissionSettings();
+						//show this again when they come back, so "Update now" is one tap away
+						Game.runOnRenderThread(new Callback() {
+							@Override
+							public void call() {
+								startUpdate();
+							}
+						});
+					} else if (index == 1) {
+						if (installer.needsPermission()) {
+							startUpdate(); //still not allowed; explain again
+						} else {
+							download();
+						}
+					}
+				}
+			});
+			return;
+		}
+		download();
+	}
+
+	private static void download() {
+		final WndUpdating wnd = new WndUpdating();
+		Game.scene().addToFront(wnd);
+		installer.downloadAndInstall(APK_URL, new Progress() {
+			@Override
+			public void progress(final float f) {
+				Game.runOnRenderThread(new Callback() {
+					@Override
+					public void call() {
+						wnd.setText("Downloading... " + Math.round(f * 100) + "%");
+					}
+				});
+			}
+
+			@Override
+			public void installing() {
+				Game.runOnRenderThread(new Callback() {
+					@Override
+					public void call() {
+						wnd.setText("Downloaded. Tap Update (or Install) on Android's prompt.\n\n" +
+								"The game will close while it installs - just open it again afterwards.");
+					}
+				});
+			}
+
+			@Override
+			public void failed(final String reason) {
+				Game.runOnRenderThread(new Callback() {
+					@Override
+					public void call() {
+						wnd.hide();
+						Game.scene().addToFront(new WndOptions(Icons.get(Icons.WARNING), "Update didn't finish",
+								reason + "\n\nYou can try again, or download it in your browser instead.",
+								"Try again", "Use browser", "Close") {
+							@Override
+							protected void onSelect(int index) {
+								if (index == 0) startUpdate();
+								else if (index == 1) ShatteredPixelDungeon.platform.openURI(APK_URL);
+							}
+						});
+					}
+				});
+			}
+		});
+	}
+
+	/** Small status window shown while the update downloads. */
+	private static class WndUpdating extends com.shatteredpixel.shatteredpixeldungeon.ui.Window {
+
+		private final com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock text;
+
+		WndUpdating() {
+			super();
+			int w = com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene.landscape() ? 144 : 120;
+			com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock title =
+					com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene.renderTextBlock("Updating SPD Duel", 9);
+			title.hardlight(TITLE_COLOR);
+			title.setPos(0, 2);
+			add(title);
+			text = com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene.renderTextBlock(6);
+			add(text);
+			setText("Starting download...");
+		}
+
+		void setText(String s) {
+			int w = com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene.landscape() ? 144 : 120;
+			text.text(s, w);
+			text.setPos(0, 16);
+			resize(w, (int) text.bottom() + 2);
+		}
+
+		@Override
+		public void onBackPressed() {
+			//keep the window while downloading; Android's prompt takes over afterwards
+		}
 	}
 }
