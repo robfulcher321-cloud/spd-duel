@@ -61,7 +61,8 @@ public class DuelScrollList extends Component {
 			public void onClick(float x, float y) {
 				//only called by the pane when the touch didn't turn into a drag
 				for (int i = areas.size() - 1; i >= 0; i--) {
-					if (areas.get(i).inside(x, y)) {
+					RectF r = areas.get(i);
+					if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) {
 						Sample.INSTANCE.play(Assets.Sounds.CLICK);
 						actions.get(i).run();
 						return;
