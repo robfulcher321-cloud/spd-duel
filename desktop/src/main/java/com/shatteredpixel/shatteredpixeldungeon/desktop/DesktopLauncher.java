@@ -191,6 +191,9 @@ public class DesktopLauncher {
 			config.setWindowedMode( 405, 720 );
 			config.setMaximized( false );
 			config.disableAudio( true );
+			config.useVsync( false );
+			config.setForegroundFPS( 30 );
+			config.setIdleFPS( 30 );
 		}
 
 		//going fullscreen on launch is a bit buggy

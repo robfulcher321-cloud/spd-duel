@@ -65,6 +65,40 @@ public class DuelSelfTest extends Gizmo {
 		t.buildSteps();
 		scene.add(t);
 		log("starting, " + t.steps.size() + " steps");
+		startWatchdog();
+	}
+
+	/** If frames stop being drawn, print what every thread is doing so the hang can be found. */
+	private static void startWatchdog() {
+		Thread w = new Thread("selftest watchdog") {
+			@Override
+			public void run() {
+				long last = -1;
+				int stalls = 0;
+				while (true) {
+					try { Thread.sleep(15000); } catch (InterruptedException e) { return; }
+					long frame = Gdx.graphics.getFrameId();
+					log("watchdog: frame " + frame);
+					if (frame == last) {
+						stalls++;
+						log("watchdog: NO NEW FRAMES for 15s, thread dump follows");
+						for (java.util.Map.Entry<Thread, StackTraceElement[]> e : Thread.getAllStackTraces().entrySet()) {
+							StringBuilder sb = new StringBuilder("THREAD " + e.getKey().getName() + " (" + e.getKey().getState() + ")\n");
+							for (StackTraceElement el : e.getValue()) sb.append("    at ").append(el).append("\n");
+							System.out.println(sb);
+						}
+						System.out.flush();
+						if (stalls >= 2) {
+							log("FAIL (hung)");
+							System.exit(2);
+						}
+					}
+					last = frame;
+				}
+			}
+		};
+		w.setDaemon(true);
+		w.start();
 	}
 
 	private static class Step {
