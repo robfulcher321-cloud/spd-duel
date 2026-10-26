@@ -30,7 +30,7 @@ jobs:
         run: |
           set -o pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace android:assembleDebug 2>&1 | tee build.log
+          SPD_BUILD=${{ github.run_number }} ./gradlew --no-daemon --stacktrace android:assembleDebug 2>&1 | tee build.log
         continue-on-error: true
 
       - name: Publish build log to ci-log branch
@@ -54,7 +54,7 @@ jobs:
           cp android/build/outputs/apk/debug/android-debug.apk SPD-Duel.apk
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest SPD-Duel.apk \
-            --title "SPD Duel – latest build" \
+            --title "SPD Duel build ${{ github.run_number }}" \
             --notes "Built from ${{ github.sha }}. Download SPD-Duel.apk on your phone and install it."
 
       - name: Fail the job if the build failed

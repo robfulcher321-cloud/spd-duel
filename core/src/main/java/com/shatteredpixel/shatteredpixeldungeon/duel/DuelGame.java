@@ -276,7 +276,8 @@ public class DuelGame {
 			String type = msg.getString("type");
 			if ("hello".equals(type)) {
 				if (msg.getInt("protocol") != PROTOCOL) {
-					lobbyFail("Your opponent has a different version of SPD Duel. Both phones need the same build.");
+					lobbyFail("Your opponent has a different version of SPD Duel. Both phones need the latest build: " +
+							"restart the app on the older phone and it will offer the update.");
 					DuelNet.close();
 					return;
 				}

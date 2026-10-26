@@ -15,8 +15,10 @@ allprojects {
         appPackageName = 'com.robfulcher.spdduel'
 
         //Full releases gets +2 on version code, needed for an F-Droid quirk
-        appVersionCode = 922
-        appVersionName = '4.0.2'
+        //SPD Duel: every GitHub build gets a higher number so phones can tell when there's an update
+        def duelBuild = System.getenv('SPD_BUILD') ? Integer.parseInt(System.getenv('SPD_BUILD')) : 0
+        appVersionCode = 2000 + duelBuild
+        appVersionName = '4.0.2-b' + duelBuild
 
         appJavaCompatibility = JavaVersion.VERSION_11
 
