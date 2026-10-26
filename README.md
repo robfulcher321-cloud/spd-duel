@@ -7,3 +7,7 @@ Installs as a separate app ("SPD Duel") alongside the official game.
 **Download:** see the `latest` release on this repo for `SPD-Duel.apk`.
 
 Work in progress.
+
+## Updating
+
+From build 16 onward, the app checks for new builds when it opens and can update itself from inside the game ("Update now").
