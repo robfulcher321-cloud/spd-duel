@@ -183,6 +183,9 @@ public class WndLoadout extends Window {
 		y = ready.bottom();
 
 		resize(w, (int) y);
+		//the scroll area works out its screen position from the window's camera, which only
+		//settles on resize; place it again now so it lines up on the first showing
+		pane.setRect(0, top, w, paneH);
 	}
 
 	private float row(float y, String label, final Runnable action) {
