@@ -164,6 +164,8 @@ public class DuelSelfTest extends Gizmo {
 			});
 		}
 
+		add("weapon picker", true, new Runnable() { public void run() { WndLoadout.openWeaponPickerForTest(); } });
+
 		//every item / enchant / glyph info window
 		ArrayList<Class<?>> items = new ArrayList<>();
 		items.addAll(DuelLoadout.weapons());

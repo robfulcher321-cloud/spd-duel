@@ -28,10 +28,9 @@ import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.MagesStaff;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Rapier;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.WornShortsword;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
-import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
-import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.Image;
@@ -46,9 +45,9 @@ public class WndLoadout extends Window {
 		void onReady(DuelLoadout loadout);
 	}
 
-	private static final int WIDTH_P = 134;
-	private static final int WIDTH_L = 164;
-	private static final int ROW = 18;
+	private static final int WIDTH_P = 146;
+	private static final int WIDTH_L = 176;
+	private static final int ROW = 20; //roomy rows for thumbs
 
 	private final HeroClass cls;
 	private final boolean endgame;
@@ -56,7 +55,7 @@ public class WndLoadout extends Window {
 	private final DuelLoadout lo;
 
 	private final ArrayList<Component> parts = new ArrayList<>();
-	private Component content;
+	private DuelScrollList list;
 
 	public WndLoadout(HeroClass cls, boolean endgame, Done done) {
 		super();
@@ -122,14 +121,33 @@ public class WndLoadout extends Window {
 		}
 	}
 
-	/** Adds the "i" button at the right end of a row, if there is something to explain. */
-	private static void addInfo(Component parent, float y, int w, final Kind k, final Class<?> c) {
-		if (c == null) return;
-		IconButton b = DuelInfo.button(new Runnable() {
-			public void run() { info(k, c); }
+	/**
+	 * Adds one tappable row to a scrolling list, plus an "i" icon at its right end when there is
+	 * something to explain. The list decides what was tapped, so scrolling never selects a row.
+	 */
+	private static void addRow(DuelScrollList list, float y, final DuelIcons.Row row, final Runnable onTap,
+	                           final Kind k, final Class<?> explain) {
+		float inner = list.innerWidth();
+		float rowW = explain != null ? inner - ROW : inner;
+		row.passive();
+		row.setRect(0, y, rowW, ROW);
+		list.content().add(row);
+		list.onTap(0, y, rowW, ROW, new Runnable() {
+			public void run() {
+				row.flash();
+				onTap.run();
+			}
 		});
-		b.setRect(w - ROW, y, ROW, ROW);
-		parent.add(b);
+		if (explain != null) {
+			Image i = Icons.get(Icons.INFO);
+			i.x = rowW + (ROW - i.width()) / 2f;
+			i.y = y + (ROW - i.height()) / 2f;
+			PixelScene.align(i);
+			list.content().add(i);
+			list.onTap(rowW, y, ROW, ROW, new Runnable() {
+				public void run() { info(k, explain); }
+			});
+		}
 	}
 
 	private static Image defaultImage(Kind k, String defaultLabel, Class<?> defaultIcon) {
@@ -167,10 +185,11 @@ public class WndLoadout extends Window {
 		parts.add(info);
 		final float top = info.bottom() + 3;
 
-		ScrollPane pane = new ScrollPane(new Component());
-		add(pane);
-		parts.add(pane);
-		content = pane.content();
+		float keepScroll = list != null ? list.scrollY() : 0;
+		list = new DuelScrollList();
+		add(list);
+		parts.add(list);
+		list.setSize(w, 1); //width is needed while rows are added; height is set below
 		y = 0;
 
 		y = slot(y, "Weapon", Kind.ITEM, lo.weapon, "Class weapon", classWeapon(), DuelLoadout.weapons(),
@@ -203,7 +222,7 @@ public class WndLoadout extends Window {
 					new Picked() { public void on(Class<?> c) { lo.consumables[idx] = c; } });
 		}
 
-		content.setRect(0, 0, w, y);
+		list.setContentHeight(y);
 		int maxH = (int) (PixelScene.uiCamera.height * 0.8f);
 		final float paneH = Math.min(y, maxH - top - 22);
 		y = top + paneH;
@@ -224,7 +243,8 @@ public class WndLoadout extends Window {
 		resize(w, (int) y);
 		//the scroll area works out its screen position from the window's camera, which only
 		//settles on resize, so place it after resizing
-		pane.setRect(0, top, w, paneH);
+		list.setRect(0, top, w, paneH);
+		list.scrollToY(keepScroll); //stay where you were after picking something
 	}
 
 	/** One loadout line, e.g. [sword picture] "Weapon: Greatsword". */
@@ -244,16 +264,11 @@ public class WndLoadout extends Window {
 			value = defaultLabel;
 		}
 
-		DuelIcons.Row b = new DuelIcons.Row(name + ": " + value, img, ovl) {
-			@Override
-			protected void onClick() {
-				pick(name, kind, defaultLabel, defaultIcon, options, picked);
-			}
-		};
+		DuelIcons.Row b = new DuelIcons.Row(name + ": " + value, img, ovl);
 		Class<?> explain = current != null ? current : defaultIcon;
-		b.setRect(0, y, explain != null ? w() - ROW : w(), ROW);
-		content.add(b);
-		addInfo(content, y, w(), kind, explain);
+		addRow(list, y, b, new Runnable() {
+			public void run() { pick(name, kind, defaultLabel, defaultIcon, options, picked); }
+		}, kind, explain);
 		return y + ROW + 1;
 	}
 
@@ -274,6 +289,14 @@ public class WndLoadout extends Window {
 		});
 	}
 
+	/** For the automated self-test: opens the weapon picker on its own. */
+	static void openWeaponPickerForTest() {
+		Game.scene().addToFront(new WndPickList("Weapon", "Class weapon", WornShortsword.class, Kind.ITEM, DuelLoadout.weapons()) {
+			@Override
+			protected void onPick(int index) {}
+		});
+	}
+
 	/** A scrolling list of choices, each with its picture; index -1 is the default entry at the top. */
 	private static abstract class WndPickList extends Window {
 
@@ -287,9 +310,9 @@ public class WndLoadout extends Window {
 			t.setPos(0, 1);
 			add(t);
 
-			ScrollPane pane = new ScrollPane(new Component());
-			add(pane);
-			Component content = pane.content();
+			DuelScrollList list = new DuelScrollList();
+			add(list);
+			list.setSize(w, 1);
 
 			float y = 0;
 			for (int i = -1; i < options.size(); i++) {
@@ -298,26 +321,23 @@ public class WndLoadout extends Window {
 				DuelIcons.Row b = new DuelIcons.Row(
 						c == null ? defaultLabel : label(kind, c),
 						c == null ? defaultImage(kind, defaultLabel, defaultIcon) : icon(kind, c),
-						c == null ? (defaultIcon != null ? overlay(kind, defaultIcon) : null) : overlay(kind, c)) {
-					@Override
-					protected void onClick() {
+						c == null ? (defaultIcon != null ? overlay(kind, defaultIcon) : null) : overlay(kind, c));
+				Class<?> explain = c != null ? c : defaultIcon;
+				addRow(list, y, b, new Runnable() {
+					public void run() {
 						WndPickList.this.hide();
 						onPick(index);
 					}
-				};
-				Class<?> explain = c != null ? c : defaultIcon;
-				b.setRect(0, y, explain != null ? w - ROW : w, ROW);
-				content.add(b);
-				addInfo(content, y, w, kind, explain);
+				}, kind, explain);
 				y += ROW + 1;
 			}
-			content.setRect(0, 0, w, y);
+			list.setContentHeight(y);
 
 			float top = t.bottom() + 3;
 			int maxH = (int) (PixelScene.uiCamera.height * 0.75f);
 			int paneH = (int) Math.min(y, maxH - top);
 			resize(w, (int) (top + paneH));
-			pane.setRect(0, top, w, paneH);
+			list.setRect(0, top, w, paneH);
 		}
 
 		protected abstract void onPick(int index);

@@ -108,6 +108,32 @@ public class DuelIcons {
 			}
 		}
 
+		private boolean passive = false;
+
+		/** For rows inside a DuelScrollList: the list decides what was tapped, so the row ignores touches. */
+		public Row passive() {
+			passive = true;
+			hotArea.active = false;
+			return this;
+		}
+
+		/** Brief highlight when the list reports this row was tapped. */
+		public void flash() {
+			bg.brightness(1.2f);
+			flashTime = 0.15f;
+		}
+
+		private float flashTime = 0;
+
+		@Override
+		public void update() {
+			super.update();
+			if (passive) hotArea.active = false;
+			if (flashTime > 0 && (flashTime -= com.watabou.noosa.Game.elapsed) <= 0) {
+				bg.resetColor();
+			}
+		}
+
 		@Override
 		protected void layout() {
 			super.layout();
