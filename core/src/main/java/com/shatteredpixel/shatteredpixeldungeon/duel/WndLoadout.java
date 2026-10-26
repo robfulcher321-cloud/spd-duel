@@ -19,12 +19,21 @@ package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.items.Generator;
+import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.CloakOfShadows;
+import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.HolyTome;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Cudgel;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Dagger;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Gloves;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.MagesStaff;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Rapier;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.WornShortsword;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.watabou.noosa.Game;
+import com.watabou.noosa.Image;
 import com.watabou.noosa.ui.Component;
 
 import java.util.ArrayList;
@@ -36,9 +45,9 @@ public class WndLoadout extends Window {
 		void onReady(DuelLoadout loadout);
 	}
 
-	private static final int WIDTH_P = 130;
-	private static final int WIDTH_L = 160;
-	private static final int ROW = 16;
+	private static final int WIDTH_P = 134;
+	private static final int WIDTH_L = 164;
+	private static final int ROW = 18;
 
 	private final HeroClass cls;
 	private final boolean endgame;
@@ -57,9 +66,59 @@ public class WndLoadout extends Window {
 		rebuild();
 	}
 
-	private int w() {
+	private static int w() {
 		return PixelScene.landscape() ? WIDTH_L : WIDTH_P;
 	}
+
+	private Class<?> classWeapon() {
+		switch (cls) {
+			case MAGE:     return MagesStaff.class;
+			case ROGUE:    return Dagger.class;
+			case HUNTRESS: return Gloves.class;
+			case DUELIST:  return Rapier.class;
+			case CLERIC:   return Cudgel.class;
+			case WARRIOR: default: return WornShortsword.class;
+		}
+	}
+
+	private Class<?> classArtifact() {
+		if (cls == HeroClass.ROGUE) return CloakOfShadows.class;
+		if (cls == HeroClass.CLERIC) return HolyTome.class;
+		return null;
+	}
+
+	// ------------------------------------------------------------------ option kinds
+
+	private enum Kind { ITEM, ENCHANT, GLYPH }
+
+	private static String label(Kind k, Class<?> c) {
+		switch (k) {
+			case ENCHANT: return DuelLoadout.enchantName(c);
+			case GLYPH:   return DuelLoadout.glyphName(c);
+			default:      return DuelLoadout.itemName(c);
+		}
+	}
+
+	private static Image icon(Kind k, Class<?> c) {
+		if (c == null) return null;
+		switch (k) {
+			case ENCHANT: return DuelIcons.enchant(c);
+			case GLYPH:   return DuelIcons.glyph(c);
+			default:      return DuelIcons.item(c);
+		}
+	}
+
+	private static Image overlay(Kind k, Class<?> c) {
+		return (k == Kind.ITEM && c != null) ? DuelIcons.overlay(c) : null;
+	}
+
+	private static Image defaultImage(Kind k, String defaultLabel, Class<?> defaultIcon) {
+		if (defaultIcon != null) return icon(k, defaultIcon);
+		if ("Random".equals(defaultLabel)) return DuelIcons.random();
+		return null;
+	}
+
+	// ------------------------------------------------------------------ layout
 
 	private void rebuild() {
 		for (Component c : parts) {
@@ -86,7 +145,7 @@ public class WndLoadout extends Window {
 		info.setPos(0, y);
 		add(info);
 		parts.add(info);
-		float top = info.bottom() + 3;
+		final float top = info.bottom() + 3;
 
 		ScrollPane pane = new ScrollPane(new Component());
 		add(pane);
@@ -94,79 +153,39 @@ public class WndLoadout extends Window {
 		content = pane.content();
 		y = 0;
 
-		y = row(y, "Weapon: " + (lo.weapon == null ? "class weapon" : DuelLoadout.itemName(lo.weapon)), new Runnable() {
-			public void run() {
-				pick("Weapon", "Class weapon", DuelLoadout.weapons(), Kind.ITEM, new Picked() {
-					public void on(Class<?> c) { lo.weapon = c; }
-				});
-			}
-		});
-		y = row(y, "Enchant: " + (lo.enchant == null ? "none" : DuelLoadout.enchantName(lo.enchant)), new Runnable() {
-			public void run() {
-				pick("Weapon enchantment", "None", DuelLoadout.enchants(), Kind.ENCHANT, new Picked() {
-					public void on(Class<?> c) { lo.enchant = c; }
-				});
-			}
-		});
-		y = row(y, "Glyph: " + (lo.glyph == null ? "none" : DuelLoadout.glyphName(lo.glyph)), new Runnable() {
-			public void run() {
-				pick("Armour glyph", "None", DuelLoadout.glyphs(), Kind.GLYPH, new Picked() {
-					public void on(Class<?> c) { lo.glyph = c; }
-				});
-			}
-		});
-		y = row(y, "Ring: " + (lo.ring == null ? "none" : DuelLoadout.itemName(lo.ring)), new Runnable() {
-			public void run() {
-				pick("Ring", "None", DuelLoadout.of(Generator.Category.RING), Kind.ITEM, new Picked() {
-					public void on(Class<?> c) { lo.ring = c; }
-				});
-			}
-		});
-		y = row(y, "Wand 1: " + (lo.wand1 == null ? "none" : DuelLoadout.itemName(lo.wand1)), new Runnable() {
-			public void run() {
-				pick("Wand 1", "None", DuelLoadout.of(Generator.Category.WAND), Kind.ITEM, new Picked() {
-					public void on(Class<?> c) { lo.wand1 = c; }
-				});
-			}
-		});
-		y = row(y, "Wand 2: " + (lo.wand2 == null ? "none" : DuelLoadout.itemName(lo.wand2)), new Runnable() {
-			public void run() {
-				pick("Wand 2", "None", DuelLoadout.of(Generator.Category.WAND), Kind.ITEM, new Picked() {
-					public void on(Class<?> c) { lo.wand2 = c; }
-				});
-			}
-		});
+		y = slot(y, "Weapon", Kind.ITEM, lo.weapon, "Class weapon", classWeapon(), DuelLoadout.weapons(),
+				new Picked() { public void on(Class<?> c) { lo.weapon = c; } });
+		y = slot(y, "Enchant", Kind.ENCHANT, lo.enchant, "None", null, DuelLoadout.enchants(),
+				new Picked() { public void on(Class<?> c) { lo.enchant = c; } });
+		y = slot(y, "Glyph", Kind.GLYPH, lo.glyph, "None", null, DuelLoadout.glyphs(),
+				new Picked() { public void on(Class<?> c) { lo.glyph = c; } });
+		y = slot(y, "Ring", Kind.ITEM, lo.ring, "None", null, DuelLoadout.of(Generator.Category.RING),
+				new Picked() { public void on(Class<?> c) { lo.ring = c; } });
+		y = slot(y, "Wand 1", Kind.ITEM, lo.wand1, "None", null, DuelLoadout.of(Generator.Category.WAND),
+				new Picked() { public void on(Class<?> c) { lo.wand1 = c; } });
+		y = slot(y, "Wand 2", Kind.ITEM, lo.wand2, "None", null, DuelLoadout.of(Generator.Category.WAND),
+				new Picked() { public void on(Class<?> c) { lo.wand2 = c; } });
 
-		String art = lo.keepClassArtifact
-				? (cls == HeroClass.ROGUE || cls == HeroClass.CLERIC ? "class artifact" : "none")
-				: (lo.artifact == null ? "none" : DuelLoadout.itemName(lo.artifact));
-		y = row(y, "Artifact: " + art, new Runnable() {
-			public void run() {
-				pick("Artifact", "Class default", DuelLoadout.of(Generator.Category.ARTIFACT), Kind.ITEM, new Picked() {
+		Class<?> classArt = classArtifact();
+		Class<?> artChosen = lo.keepClassArtifact ? null : lo.artifact;
+		String artDefault = classArt != null ? "Class artifact" : "None";
+		y = slot(y, "Artifact", Kind.ITEM, artChosen, artDefault, classArt, DuelLoadout.of(Generator.Category.ARTIFACT),
+				new Picked() {
 					public void on(Class<?> c) {
 						lo.keepClassArtifact = c == null;
 						lo.artifact = c;
 					}
 				});
-			}
-		});
 
 		for (int i = 0; i < 3; i++) {
-			final int slot = i;
-			Class<?> c = lo.consumables[i];
-			y = row(y, "Item " + (i + 1) + ": " + (c == null ? "random" : DuelLoadout.itemName(c)), new Runnable() {
-				public void run() {
-					pick("Item " + (slot + 1), "Random", DuelLoadout.consumablePool(), Kind.ITEM, new Picked() {
-						public void on(Class<?> c) { lo.consumables[slot] = c; }
-					});
-				}
-			});
+			final int idx = i;
+			y = slot(y, "Item " + (i + 1), Kind.ITEM, lo.consumables[i], "Random", null, DuelLoadout.consumablePool(),
+					new Picked() { public void on(Class<?> c) { lo.consumables[idx] = c; } });
 		}
 
 		content.setRect(0, 0, w, y);
 		int maxH = (int) (PixelScene.uiCamera.height * 0.8f);
-		float paneH = Math.min(y, maxH - top - 22);
-		pane.setRect(0, top, w, paneH);
+		final float paneH = Math.min(y, maxH - top - 22);
 		y = top + paneH;
 
 		RedButton ready = new RedButton("Ready to fight") {
@@ -184,15 +203,31 @@ public class WndLoadout extends Window {
 
 		resize(w, (int) y);
 		//the scroll area works out its screen position from the window's camera, which only
-		//settles on resize; place it again now so it lines up on the first showing
+		//settles on resize, so place it after resizing
 		pane.setRect(0, top, w, paneH);
 	}
 
-	private float row(float y, String label, final Runnable action) {
-		RedButton b = new RedButton(label, 6) {
+	/** One loadout line, e.g. [sword picture] "Weapon: Greatsword". */
+	private float slot(float y, final String name, final Kind kind, Class<?> current,
+	                   final String defaultLabel, final Class<?> defaultIcon,
+	                   final ArrayList<Class<?>> options, final Picked picked) {
+		Image img;
+		Image ovl;
+		String value;
+		if (current != null) {
+			img = icon(kind, current);
+			ovl = overlay(kind, current);
+			value = label(kind, current);
+		} else {
+			img = defaultImage(kind, defaultLabel, defaultIcon);
+			ovl = defaultIcon != null ? overlay(kind, defaultIcon) : null;
+			value = defaultLabel;
+		}
+
+		DuelIcons.Row b = new DuelIcons.Row(name + ": " + value, img, ovl) {
 			@Override
 			protected void onClick() {
-				action.run();
+				pick(name, kind, defaultLabel, defaultIcon, options, picked);
 			}
 		};
 		b.setRect(0, y, w(), ROW);
@@ -202,38 +237,27 @@ public class WndLoadout extends Window {
 
 	// ------------------------------------------------------------------ picker
 
-	private enum Kind { ITEM, ENCHANT, GLYPH }
-
 	private interface Picked {
 		void on(Class<?> c);
 	}
 
-	private void pick(String title, String noneLabel, ArrayList<Class<?>> options, Kind kind, final Picked picked) {
-		String[] labels = new String[options.size()];
-		for (int i = 0; i < options.size(); i++) {
-			Class<?> c = options.get(i);
-			switch (kind) {
-				case ENCHANT: labels[i] = DuelLoadout.enchantName(c); break;
-				case GLYPH:   labels[i] = DuelLoadout.glyphName(c); break;
-				default:      labels[i] = DuelLoadout.itemName(c); break;
-			}
-		}
-		final ArrayList<Class<?>> opts = options;
-		Game.scene().addToFront(new WndPickList(title, noneLabel, labels) {
+	private void pick(String title, final Kind kind, final String defaultLabel, final Class<?> defaultIcon,
+	                  final ArrayList<Class<?>> options, final Picked picked) {
+		Game.scene().addToFront(new WndPickList(title, defaultLabel, defaultIcon, kind, options) {
 			@Override
 			protected void onPick(int index) {
-				picked.on(index < 0 ? null : opts.get(index));
+				picked.on(index < 0 ? null : options.get(index));
 				rebuild();
 			}
 		});
 	}
 
-	/** A scrolling list of choices; index -1 is the "none/default" entry at the top. */
-	public static abstract class WndPickList extends Window {
+	/** A scrolling list of choices, each with its picture; index -1 is the default entry at the top. */
+	private static abstract class WndPickList extends Window {
 
-		public WndPickList(String title, String noneLabel, String[] labels) {
+		WndPickList(String title, String defaultLabel, Class<?> defaultIcon, Kind kind, ArrayList<Class<?>> options) {
 			super();
-			int w = PixelScene.landscape() ? WIDTH_L : WIDTH_P;
+			int w = w();
 
 			RenderedTextBlock t = PixelScene.renderTextBlock(title, 9);
 			t.hardlight(TITLE_COLOR);
@@ -246,9 +270,13 @@ public class WndLoadout extends Window {
 			Component content = pane.content();
 
 			float y = 0;
-			for (int i = -1; i < labels.length; i++) {
+			for (int i = -1; i < options.size(); i++) {
 				final int index = i;
-				RedButton b = new RedButton(i < 0 ? noneLabel : labels[i], 6) {
+				Class<?> c = i < 0 ? null : options.get(i);
+				DuelIcons.Row b = new DuelIcons.Row(
+						c == null ? defaultLabel : label(kind, c),
+						c == null ? defaultImage(kind, defaultLabel, defaultIcon) : icon(kind, c),
+						c == null ? (defaultIcon != null ? overlay(kind, defaultIcon) : null) : overlay(kind, c)) {
 					@Override
 					protected void onClick() {
 						WndPickList.this.hide();
@@ -262,7 +290,7 @@ public class WndLoadout extends Window {
 			content.setRect(0, 0, w, y);
 
 			float top = t.bottom() + 3;
-			int maxH = (int) (PixelScene.uiCamera.height * 0.7f);
+			int maxH = (int) (PixelScene.uiCamera.height * 0.75f);
 			int paneH = (int) Math.min(y, maxH - top);
 			resize(w, (int) (top + paneH));
 			pane.setRect(0, top, w, paneH);

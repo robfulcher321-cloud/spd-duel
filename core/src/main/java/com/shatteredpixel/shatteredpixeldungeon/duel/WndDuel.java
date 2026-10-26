@@ -29,6 +29,11 @@ import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.Window;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndTextInput;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSprite;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.ItemSpriteSheet;
+import com.shatteredpixel.shatteredpixeldungeon.ui.HeroIcon;
+import com.shatteredpixel.shatteredpixeldungeon.ui.Icons;
+import com.watabou.noosa.Image;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.ui.Component;
 
@@ -81,6 +86,18 @@ public class WndDuel extends WndOptions {
 					: "Fight with a hero from a saved run, or a ready-made test fighter.",
 				labels) {
 			@Override
+			protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+			@Override
+			protected Image getIcon(int index) {
+				if (index < runs.size()) {
+					GamesInProgress.Info info = runs.get(index);
+					return DuelIcons.hero(info.heroClass, info.armorTier);
+				}
+				return Icons.get(Icons.CHALLENGE_COLOR);
+			}
+
+			@Override
 			protected void onSelect(int index) {
 				if (index == runs.size()) {
 					pickTestFighter(hosting);
@@ -104,6 +121,14 @@ public class WndDuel extends WndOptions {
 				"Mid-game (level " + DuelGame.TEST_LEVEL + ")",
 				"Endgame (level " + DuelGame.ENDGAME_LEVEL + ")") {
 			@Override
+			protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+			@Override
+			protected Image getIcon(int index) {
+				return new ItemSprite(index == 0 ? ItemSpriteSheet.ARMOR_MAIL : ItemSpriteSheet.ARMOR_WARRIOR);
+			}
+
+			@Override
 			protected void onSelect(int index) {
 				pickTestClass(hosting, index == 1);
 			}
@@ -124,6 +149,14 @@ public class WndDuel extends WndOptions {
 				  "two healing potions and its first talents filled in. No subclass yet.";
 		show(new WndOptions("Choose a class", desc, labels) {
 			@Override
+			protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+			@Override
+			protected Image getIcon(int index) {
+				return DuelIcons.hero(classes[index], endgame ? 6 : 3);
+			}
+
+			@Override
 			protected void onSelect(int index) {
 				if (endgame) {
 					pickSubclass(hosting, classes[index]);
@@ -142,6 +175,14 @@ public class WndDuel extends WndOptions {
 		}
 		show(new WndOptions("Choose a subclass", "Which " + cls.title() + " subclass?", labels) {
 			@Override
+			protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+			@Override
+			protected Image getIcon(int index) {
+				return new HeroIcon(subs[index]);
+			}
+
+			@Override
 			protected void onSelect(int index) {
 				pickAbility(hosting, cls, subs[index]);
 			}
@@ -155,6 +196,14 @@ public class WndDuel extends WndOptions {
 			labels[i] = Messages.capitalize(abilities[i].name());
 		}
 		show(new WndOptions("Choose an armour ability", "Used from your class armour.", labels) {
+			@Override
+			protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+			@Override
+			protected Image getIcon(int index) {
+				return new HeroIcon(abilities[index]);
+			}
+
 			@Override
 			protected void onSelect(int index) {
 				build(hosting, cls, sub, abilities[index]);
