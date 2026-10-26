@@ -21,7 +21,13 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
 import com.shatteredpixel.shatteredpixeldungeon.items.BrokenSeal;
+import com.shatteredpixel.shatteredpixeldungeon.items.armor.ClassArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.MailArmor;
+import com.shatteredpixel.shatteredpixeldungeon.items.armor.PlateArmor;
+import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.CloakOfShadows;
+import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.HolyTome;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
@@ -106,24 +112,20 @@ public class DuelGame {
 	}
 
 	public static final int TEST_LEVEL = 12;
+	public static final int ENDGAME_LEVEL = 30;
 
-	/**
-	 * Makes a ready-to-fight hero of the given class without touching any save:
-	 * level 12, tier 1 and 2 talents filled in, class weapon +3, mail armour +2,
-	 * 13 strength and two healing potions. Every class gets the same budget.
-	 */
-	public static void prepareTestHero(HeroClass cls) {
+	/** A fresh hero of the class with its normal starting kit, made without touching any save. */
+	private static Hero freshHero(HeroClass cls) {
 		GamesInProgress.selectedClass = cls;
 		Dungeon.seed = DungeonSeed.randomSeed();
 		Dungeon.customSeedText = "";
 		Dungeon.daily = Dungeon.dailyReplay = false;
-		Dungeon.init(); //makes a fresh hero with the class's normal starting kit
+		Dungeon.init();
+		return Dungeon.hero;
+	}
 
-		Hero h = Dungeon.hero;
-		h.duelSetLevel(TEST_LEVEL);
-		h.STR = 13; //base 10 plus the ~3 strength potions found by this point
-
-		//spend every available talent point, filling talents in listed order
+	/** Spends every available talent point, filling talents in the game's listed order. */
+	private static void fillTalents(Hero h) {
 		for (int tier = 1; tier <= Math.min(h.talents.size(), Talent.MAX_TALENT_TIERS); tier++) {
 			int points = h.talentPointsAvailable(tier);
 			for (Talent t : new ArrayList<>(h.talents.get(tier - 1).keySet())) {
@@ -133,6 +135,23 @@ public class DuelGame {
 				}
 			}
 		}
+	}
+
+	private static void giveHealing(int amount) {
+		PotionOfHealing healing = new PotionOfHealing();
+		healing.quantity(amount).identify();
+		healing.collect();
+	}
+
+	/**
+	 * Mid-game test fighter: level 12, tier 1 and 2 talents filled in, class weapon +3,
+	 * mail armour +2, 13 strength and two healing potions. Every class gets the same budget.
+	 */
+	public static void prepareTestHero(HeroClass cls) {
+		Hero h = freshHero(cls);
+		h.duelSetLevel(TEST_LEVEL);
+		h.STR = 13; //base 10 plus the ~3 strength potions found by this point
+		fillTalents(h);
 
 		if (h.belongings.weapon != null) {
 			h.belongings.weapon.upgrade(3);
@@ -146,11 +165,56 @@ public class DuelGame {
 		}
 		h.belongings.armor = armor;
 
-		PotionOfHealing healing = new PotionOfHealing();
-		healing.quantity(2).identify();
-		healing.collect();
+		giveHealing(2);
 
 		buildHello(h, "Test " + Messages.capitalize(cls.title()) + " (lvl " + h.lvl + ")");
+	}
+
+	/**
+	 * Endgame test fighter: level 30 with the chosen subclass and armour ability, every
+	 * talent point spent, class weapon +10, plate-based class armour +10 (ability fully
+	 * charged), 18 strength, a maxed class artifact and three healing potions.
+	 */
+	public static void prepareEndgameHero(HeroClass cls, HeroSubClass sub, ArmorAbility ability) {
+		Hero h = freshHero(cls);
+		h.duelSetLevel(ENDGAME_LEVEL);
+		h.STR = 18; //base 10 plus all 8 strength potions in a run
+
+		h.subClass = sub;
+		Talent.initSubclassTalents(h);
+		h.armorAbility = ability;
+		Talent.initArmorTalents(h);
+		fillTalents(h);
+
+		if (h.belongings.weapon != null) {
+			h.belongings.weapon.upgrade(10);
+		}
+
+		PlateArmor plate = new PlateArmor();
+		plate.upgrade(10);
+		plate.identify();
+		if (cls == HeroClass.WARRIOR) {
+			plate.affixSeal(new BrokenSeal());
+		}
+		ClassArmor armor = ClassArmor.upgrade(h, plate);
+		armor.identify();
+		armor.charge = 100;
+		h.belongings.armor = armor;
+		armor.activate(h);
+
+		if (h.belongings.artifact instanceof CloakOfShadows) {
+			CloakOfShadows cloak = (CloakOfShadows) h.belongings.artifact;
+			cloak.transferUpgrade(10);
+			cloak.directCharge(10);
+		} else if (h.belongings.artifact instanceof HolyTome) {
+			HolyTome tome = (HolyTome) h.belongings.artifact;
+			tome.transferUpgrade(10);
+			tome.directCharge(10);
+		}
+
+		giveHealing(3);
+
+		buildHello(h, Messages.capitalize(sub.title()) + " (lvl " + h.lvl + ")");
 	}
 
 	private static void buildHello(Hero h, String name) {

@@ -328,6 +328,8 @@ public enum HeroClass {
 	}
 	
 	public boolean isUnlocked(){
+		//SPD Duel: every class is available from the start
+		if (true) return true;
 		//always unlock on debug builds
 		if (DeviceCompat.isDebug()) return true;
 

@@ -21,6 +21,7 @@ import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
@@ -99,28 +100,81 @@ public class WndDuel extends WndOptions {
 	}
 
 	private static void pickTestFighter(final boolean hosting) {
+		show(new WndOptions("Test fighter", "How far along should your fighter be?",
+				"Mid-game (level " + DuelGame.TEST_LEVEL + ")",
+				"Endgame (level " + DuelGame.ENDGAME_LEVEL + ")") {
+			@Override
+			protected void onSelect(int index) {
+				pickTestClass(hosting, index == 1);
+			}
+		});
+	}
+
+	private static void pickTestClass(final boolean hosting, final boolean endgame) {
 		final HeroClass[] classes = HeroClass.values();
 		String[] labels = new String[classes.length];
 		for (int i = 0; i < classes.length; i++) {
 			labels[i] = Messages.capitalize(classes[i].title());
 		}
-		show(new WndOptions("Test fighter",
-				"Every test fighter is level " + DuelGame.TEST_LEVEL + " with its class weapon +3, " +
-				"mail armour +2, 13 strength, two healing potions and its first talents filled in. " +
-				"No subclass yet.",
-				labels) {
+		String desc = endgame
+				? "Level " + DuelGame.ENDGAME_LEVEL + ", every talent filled in, class weapon +10, class armour +10 " +
+				  "with its ability fully charged, 18 strength, maxed class artifact, three healing potions. " +
+				  "You'll pick a subclass and armour ability next."
+				: "Level " + DuelGame.TEST_LEVEL + " with its class weapon +3, mail armour +2, 13 strength, " +
+				  "two healing potions and its first talents filled in. No subclass yet.";
+		show(new WndOptions("Choose a class", desc, labels) {
 			@Override
 			protected void onSelect(int index) {
-				try {
-					DuelGame.prepareTestHero(classes[index]);
-				} catch (Exception e) {
-					ShatteredPixelDungeon.reportException(e);
-					show(new WndOptions("Couldn't make fighter", "Something went wrong building that hero.", "OK"));
-					return;
+				if (endgame) {
+					pickSubclass(hosting, classes[index]);
+				} else {
+					build(hosting, classes[index], null, null);
 				}
-				heroReady(hosting);
 			}
 		});
+	}
+
+	private static void pickSubclass(final boolean hosting, final HeroClass cls) {
+		final HeroSubClass[] subs = cls.subClasses();
+		String[] labels = new String[subs.length];
+		for (int i = 0; i < subs.length; i++) {
+			labels[i] = Messages.capitalize(subs[i].title());
+		}
+		show(new WndOptions("Choose a subclass", "Which " + cls.title() + " subclass?", labels) {
+			@Override
+			protected void onSelect(int index) {
+				pickAbility(hosting, cls, subs[index]);
+			}
+		});
+	}
+
+	private static void pickAbility(final boolean hosting, final HeroClass cls, final HeroSubClass sub) {
+		final ArmorAbility[] abilities = cls.armorAbilities();
+		String[] labels = new String[abilities.length];
+		for (int i = 0; i < abilities.length; i++) {
+			labels[i] = Messages.capitalize(abilities[i].name());
+		}
+		show(new WndOptions("Choose an armour ability", "Used from your class armour.", labels) {
+			@Override
+			protected void onSelect(int index) {
+				build(hosting, cls, sub, abilities[index]);
+			}
+		});
+	}
+
+	private static void build(boolean hosting, HeroClass cls, HeroSubClass sub, ArmorAbility ability) {
+		try {
+			if (sub == null) {
+				DuelGame.prepareTestHero(cls);
+			} else {
+				DuelGame.prepareEndgameHero(cls, sub, ability);
+			}
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+			show(new WndOptions("Couldn't make fighter", "Something went wrong building that hero.", "OK"));
+			return;
+		}
+		heroReady(hosting);
 	}
 
 	private static void heroReady(boolean hosting) {
