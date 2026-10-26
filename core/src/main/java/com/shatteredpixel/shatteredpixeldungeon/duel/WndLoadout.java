@@ -28,6 +28,7 @@ import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.MagesStaff;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.Rapier;
 import com.shatteredpixel.shatteredpixeldungeon.items.weapon.melee.WornShortsword;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.PixelScene;
+import com.shatteredpixel.shatteredpixeldungeon.ui.IconButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RedButton;
 import com.shatteredpixel.shatteredpixeldungeon.ui.RenderedTextBlock;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ScrollPane;
@@ -110,6 +111,25 @@ public class WndLoadout extends Window {
 
 	private static Image overlay(Kind k, Class<?> c) {
 		return (k == Kind.ITEM && c != null) ? DuelIcons.overlay(c) : null;
+	}
+
+	private static void info(Kind k, Class<?> c) {
+		if (c == null) return;
+		switch (k) {
+			case ENCHANT: DuelInfo.enchant(c); break;
+			case GLYPH:   DuelInfo.glyph(c); break;
+			default:      DuelInfo.item(c); break;
+		}
+	}
+
+	/** Adds the "i" button at the right end of a row, if there is something to explain. */
+	private static void addInfo(Component parent, float y, int w, final Kind k, final Class<?> c) {
+		if (c == null) return;
+		IconButton b = DuelInfo.button(new Runnable() {
+			public void run() { info(k, c); }
+		});
+		b.setRect(w - ROW, y, ROW, ROW);
+		parent.add(b);
 	}
 
 	private static Image defaultImage(Kind k, String defaultLabel, Class<?> defaultIcon) {
@@ -230,8 +250,10 @@ public class WndLoadout extends Window {
 				pick(name, kind, defaultLabel, defaultIcon, options, picked);
 			}
 		};
-		b.setRect(0, y, w(), ROW);
+		Class<?> explain = current != null ? current : defaultIcon;
+		b.setRect(0, y, explain != null ? w() - ROW : w(), ROW);
 		content.add(b);
+		addInfo(content, y, w(), kind, explain);
 		return y + ROW + 1;
 	}
 
@@ -283,8 +305,10 @@ public class WndLoadout extends Window {
 						onPick(index);
 					}
 				};
-				b.setRect(0, y, w, ROW);
+				Class<?> explain = c != null ? c : defaultIcon;
+				b.setRect(0, y, explain != null ? w - ROW : w, ROW);
 				content.add(b);
+				addInfo(content, y, w, kind, explain);
 				y += ROW + 1;
 			}
 			content.setRect(0, 0, w, y);

@@ -98,6 +98,16 @@ public class WndDuel extends WndOptions {
 			}
 
 			@Override
+			protected boolean hasInfo(int index) { return index == runs.size(); }
+
+			@Override
+			protected void onInfo(int index) {
+				DuelInfo.message(Icons.get(Icons.CHALLENGE_COLOR), "Test fighter",
+						"A ready-made hero of any class, built just for this duel. Nothing is saved and none " +
+						"of your runs are touched. Choose mid-game or endgame, then pick its gear.");
+			}
+
+			@Override
 			protected void onSelect(int index) {
 				if (index == runs.size()) {
 					pickTestFighter(hosting);
@@ -120,6 +130,25 @@ public class WndDuel extends WndOptions {
 		show(new WndOptions("Test fighter", "How far along should your fighter be?",
 				"Mid-game (level " + DuelGame.TEST_LEVEL + ")",
 				"Endgame (level " + DuelGame.ENDGAME_LEVEL + ")") {
+			@Override
+			protected boolean hasInfo(int index) { return true; }
+
+			@Override
+			protected void onInfo(int index) {
+				if (index == 0) {
+					DuelInfo.message(new ItemSprite(ItemSpriteSheet.ARMOR_MAIL), "Mid-game fighter",
+							"Roughly where a run is around depth 10.\n\nLevel " + DuelGame.TEST_LEVEL + ", tier 1 and 2 talents " +
+							"filled in automatically, no subclass yet. Class weapon +3 (or your pick at +3), mail armour +2, " +
+							"13 strength, two healing potions, plus the gear you choose next.");
+				} else {
+					DuelInfo.message(new ItemSprite(ItemSpriteSheet.ARMOR_WARRIOR), "Endgame fighter",
+							"A finished late-game hero.\n\nLevel " + DuelGame.ENDGAME_LEVEL + ", every talent tier filled in " +
+							"automatically, your choice of subclass and armour ability. Class armour +10 with the ability " +
+							"fully charged, weapon +10, 18 strength, maxed class artifact, three healing potions, plus the " +
+							"gear you choose next.");
+				}
+			}
+
 			@Override
 			protected boolean hasIcon(int index) { return getIcon(index) != null; }
 
@@ -149,6 +178,14 @@ public class WndDuel extends WndOptions {
 				  "two healing potions and its first talents filled in. No subclass yet.";
 		show(new WndOptions("Choose a class", desc, labels) {
 			@Override
+			protected boolean hasInfo(int index) { return true; }
+
+			@Override
+			protected void onInfo(int index) {
+				DuelInfo.heroClass(classes[index]);
+			}
+
+			@Override
 			protected boolean hasIcon(int index) { return getIcon(index) != null; }
 
 			@Override
@@ -175,6 +212,14 @@ public class WndDuel extends WndOptions {
 		}
 		show(new WndOptions("Choose a subclass", "Which " + cls.title() + " subclass?", labels) {
 			@Override
+			protected boolean hasInfo(int index) { return true; }
+
+			@Override
+			protected void onInfo(int index) {
+				DuelInfo.subclass(cls, subs[index]);
+			}
+
+			@Override
 			protected boolean hasIcon(int index) { return getIcon(index) != null; }
 
 			@Override
@@ -196,6 +241,14 @@ public class WndDuel extends WndOptions {
 			labels[i] = Messages.capitalize(abilities[i].name());
 		}
 		show(new WndOptions("Choose an armour ability", "Used from your class armour.", labels) {
+			@Override
+			protected boolean hasInfo(int index) { return true; }
+
+			@Override
+			protected void onInfo(int index) {
+				DuelInfo.ability(cls, abilities[index]);
+			}
+
 			@Override
 			protected boolean hasIcon(int index) { return getIcon(index) != null; }
 
