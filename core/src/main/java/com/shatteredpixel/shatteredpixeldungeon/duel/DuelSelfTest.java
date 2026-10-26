@@ -56,16 +56,22 @@ public class DuelSelfTest extends Gizmo {
 		}
 	}
 
-	private static boolean started = false;
+	private static DuelSelfTest instance = null;
 
 	public static void startIfEnabled(Scene scene) {
-		if (!enabled() || started) return;
-		started = true;
-		DuelSelfTest t = new DuelSelfTest();
-		t.buildSteps();
-		scene.add(t);
-		log("starting, " + t.steps.size() + " steps");
-		startWatchdog();
+		if (!enabled()) return;
+		if (instance == null) {
+			instance = new DuelSelfTest();
+			instance.buildSteps();
+			log("starting, " + instance.steps.size() + " steps");
+			startWatchdog();
+		} else {
+			//the title screen gets rebuilt (e.g. when the window resizes); carry on in the new one
+			log("title screen rebuilt, re-attaching");
+			instance.frames = 0;
+			if (instance.index >= 0) instance.index--; //redo the step that was interrupted
+		}
+		scene.add(instance);
 	}
 
 	/** If frames stop being drawn, print what every thread is doing so the hang can be found. */
