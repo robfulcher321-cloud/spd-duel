@@ -362,6 +362,19 @@ public class Bundle {
 		}
 	}
 
+	//SPD Duel: lists of bundles (the matching getBundleArray already exists)
+	public void put( String key, Bundle[] bundles ) {
+		try {
+			JSONArray array = new JSONArray();
+			for (Bundle b : bundles) {
+				array.put( b.data );
+			}
+			data.put( key, array );
+		} catch (JSONException e) {
+			Game.reportException(e);
+		}
+	}
+
 	public void put( String key, Bundlable object ) {
 		if (object != null) {
 			try {
