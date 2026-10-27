@@ -771,16 +771,11 @@ public class DuelGame {
 		}
 	}
 
-	/** Notices my hero moving and other figures being pushed by what I did. */
+	/**
+	 * Notices other figures being pushed by what I did, then my hero moving. Pushes are
+	 * recorded first: they come from my attacks, which happen before my next step.
+	 */
 	static void samplePositions() {
-		Hero me = Dungeon.hero;
-		if (me != null && me.pos != lastMyPos) {
-			Bundle e = new Bundle();
-			e.put("e", "move");
-			e.put("p", me.pos);
-			addEvent(e);
-			lastMyPos = me.pos;
-		}
 		for (Player p : players()) {
 			if (p.puppet == null || !p.alive) continue;
 			Integer last = lastPuppetPos.get(p.id);
@@ -792,6 +787,14 @@ public class DuelGame {
 				addEvent(e);
 			}
 			lastPuppetPos.put(p.id, p.puppet.pos);
+		}
+		Hero me = Dungeon.hero;
+		if (me != null && me.pos != lastMyPos) {
+			Bundle e = new Bundle();
+			e.put("e", "move");
+			e.put("p", me.pos);
+			addEvent(e);
+			lastMyPos = me.pos;
 		}
 	}
 
