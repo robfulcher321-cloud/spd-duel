@@ -421,6 +421,9 @@ public class SpiritBow extends Weapon {
 				
 				throwSound();
 
+				if (user == com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero) {
+					com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.recordThrow(getClass(), cell);
+				}
 				user.sprite.zap(cell);
 				((MissileSprite) user.sprite.parent.recycle(MissileSprite.class)).
 						reset(user.sprite,

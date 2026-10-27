@@ -22,6 +22,13 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
+import com.shatteredpixel.shatteredpixeldungeon.effects.Splash;
+import com.shatteredpixel.shatteredpixeldungeon.items.Item;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.Potion;
+import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
+import com.shatteredpixel.shatteredpixeldungeon.items.weapon.SpiritBow;
+import com.shatteredpixel.shatteredpixeldungeon.mechanics.Ballistica;
+import com.shatteredpixel.shatteredpixeldungeon.sprites.MissileSprite;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
@@ -29,7 +36,9 @@ import com.watabou.noosa.Game;
 import com.watabou.noosa.Gizmo;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.Bundle;
+import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
+import com.watabou.utils.Reflection;
 
 /**
  * Two halves that keep a match in step:
@@ -196,7 +205,8 @@ public class DuelController extends Actor {
 			} else if ("swing".equals(type)) {
 				int t = e.getInt("t");
 				Char target = charFor(t);
-				if (mover != null && mover.sprite != null && target != null) {
+				//thrown/shot attacks were already shown flying by the throw event
+				if (mover != null && mover.sprite != null && target != null && !e.getBoolean("r")) {
 					mover.sprite.attack(target.pos);
 					wait = 0.3f;
 				}
@@ -232,13 +242,95 @@ public class DuelController extends Actor {
 					if (p != null && p.puppet != null) slide(p.puppet, to);
 				}
 				wait = 0.2f;
+
+			} else if ("throw".equals(type)) {
+				showThrow(e.getString("c"), e.getInt("p"));
+				wait = 0.35f;
+
+			} else if ("zap".equals(type)) {
+				showZap(e.getString("c"), e.getInt("p"));
+				wait = 0.35f;
+
+			} else if ("buff".equals(type)) {
+				int t = e.getInt("t");
+				if (t == DuelGame.myId()) {
+					DuelSync.applyInflictedToMe(e.getBundle("b"));
+				} else {
+					DuelGame.Player p = DuelGame.player(t);
+					if (p != null && p.puppet != null && p.alive) DuelSync.applyInflictedToPuppet(p.puppet, e.getBundle("b"));
+				}
+				wait = 0.1f;
 			}
 		}
 
-		/** Final position/health for the player who just moved, straight from their phone. */
+		private Item itemFor(String className) {
+			try {
+				if (className.endsWith("SpiritBow$SpiritArrow")) return new SpiritBow().knockArrow();
+				Class<?> c = Reflection.forName(className);
+				Object o = c == null ? null : Reflection.newInstance(c);
+				return o instanceof Item ? (Item) o : null;
+			} catch (Exception ex) {
+				return null;
+			}
+		}
+
+		/** Another player's thrown item flying to where it lands (and breaking, for potions). */
+		private void showThrow(String className, final int cell) {
+			if (mover == null || mover.sprite == null || mover.sprite.parent == null) return;
+			final Item item = itemFor(className);
+			if (item == null) return;
+			mover.sprite.zap(cell);
+			((MissileSprite) mover.sprite.parent.recycle(MissileSprite.class)).reset(mover.sprite, cell, item, new Callback() {
+				@Override
+				public void call() {
+					if (item instanceof Potion && cell >= 0 && cell < Dungeon.level.length() && Dungeon.level.heroFOV[cell]) {
+						Sample.INSTANCE.play(Assets.Sounds.SHATTER);
+						Splash.at(cell, ((Potion) item).duelSplashColor(), 5);
+					}
+				}
+			});
+		}
+
+		/** Another player's wand bolt, using that wand's own effect. */
+		private void showZap(String className, int cell) {
+			if (mover == null || mover.sprite == null || mover.sprite.parent == null) return;
+			Item item = itemFor(className);
+			if (!(item instanceof Wand)) return;
+			DuelGame.Player owner = DuelGame.player(from);
+			Hero stand = owner != null ? owner.ghost : null;
+			if (stand == null) return;
+			//the wand effects draw from "the current user": stand the owner's hero in for the figure
+			stand.pos = mover.pos;
+			stand.sprite = mover.sprite;
+			Hero saved = Item.duelSetUser(stand);
+			try {
+				mover.sprite.zap(cell);
+				Wand w = (Wand) item;
+				w.duelFx(new Ballistica(mover.pos, cell, w.collisionProperties(cell)));
+			} catch (Exception ex) {
+				DuelTestDriver.log("couldn't show zap: " + ex);
+			} finally {
+				Item.duelSetUser(saved);
+				stand.sprite = null;
+			}
+		}
+
+		/** Final position/health for the player who just moved, straight from their phone, plus the arena and their buffs. */
 		private void finish() {
+			//the arena as the mover left it: fire, gas, plants, items, terrain
+			if (msg.contains("world")) {
+				try {
+					DuelSync.applyWorld(msg.getBundle("world"));
+				} catch (Exception e) {
+					DuelTestDriver.log("ERROR applying arena: " + e);
+				}
+			}
 			if (mover == null) return;
 			mover.syncFrom(msg.getInt("pos"), msg.getInt("hp"), msg.getInt("ht"));
+			if (msg.contains("buffs")) {
+				DuelSync.applyBuffsToPuppet(mover, msg.getBundleArray("buffs"));
+				DuelTestDriver.log("figure " + from + " shows buffs: [" + DuelSync.names(mover) + "]");
+			}
 		}
 
 		private static Char charFor(int id) {

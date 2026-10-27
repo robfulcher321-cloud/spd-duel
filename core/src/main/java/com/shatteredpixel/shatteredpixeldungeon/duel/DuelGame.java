@@ -313,6 +313,9 @@ public class DuelGame {
 		current = 0;
 		myTurn = false;
 		events.clear();
+		synchronized (inflicted) {
+			inflicted.clear();
+		}
 	}
 
 	public static void hostLobby(LobbyListener l) {
@@ -743,6 +746,17 @@ public class DuelGame {
 			events.clear();
 		}
 		b.put("events", evs.toArray(new Bundle[0]));
+		//how my hero and the arena look now: buffs and shields, fire, gas, plants, items, terrain
+		try {
+			b.put("buffs", DuelSync.myBuffs(me));
+		} catch (Exception e) {
+			DuelTestDriver.log("couldn't pack my buffs: " + e);
+		}
+		try {
+			b.put("world", DuelSync.world());
+		} catch (Exception e) {
+			DuelTestDriver.log("couldn't pack the arena: " + e);
+		}
 		DuelTestDriver.progress("SENT turn " + sentSeq + ": pos " + me.pos + " hp " + me.HP + " events " + describeEvents(evs));
 		DuelNet.broadcast(b);
 
@@ -788,6 +802,7 @@ public class DuelGame {
 			}
 			lastPuppetPos.put(p.id, p.puppet.pos);
 		}
+		flushInflicted();
 		Hero me = Dungeon.hero;
 		if (me != null && me.pos != lastMyPos) {
 			Bundle e = new Bundle();
@@ -806,6 +821,11 @@ public class DuelGame {
 		e.put("e", "swing");
 		e.put("t", target);
 		e.put("h", hit);
+		Player tp = player(target);
+		if (Dungeon.hero != null && tp != null && tp.puppet != null
+				&& !Dungeon.level.adjacent(Dungeon.hero.pos, tp.puppet.pos)) {
+			e.put("r", true); //thrown or shot: the missile is shown by the throw event
+		}
 		addEvent(e);
 	}
 
@@ -819,6 +839,60 @@ public class DuelGame {
 		addEvent(e);
 	}
 
+	/** My hero threw something (a potion, a dart, an arrow...). */
+	public static void recordThrow(Class<?> itemClass, int cell) {
+		recordShot("throw", itemClass, cell);
+	}
+
+	/** My hero zapped a wand. */
+	public static void recordZap(Class<?> wandClass, int cell) {
+		recordShot("zap", wandClass, cell);
+	}
+
+	private static void recordShot(String kind, Class<?> cls, int cell) {
+		if (!active || !myTurn || over) return;
+		samplePositions();
+		Bundle e = new Bundle();
+		e.put("e", kind);
+		e.put("c", cls.getName());
+		e.put("p", cell);
+		addEvent(e);
+	}
+
+	private static final ArrayList<Object[]> inflicted = new ArrayList<>();
+
+	/** Something I did put a buff/debuff on someone's figure. It's sent once its duration is set. */
+	static void buffInflicted(int target, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff b) {
+		if (!active || !myTurn || over || target < 0) return;
+		synchronized (inflicted) {
+			inflicted.add(new Object[]{target, b});
+		}
+	}
+
+	private static void flushInflicted() {
+		ArrayList<Object[]> list;
+		synchronized (inflicted) {
+			if (inflicted.isEmpty()) return;
+			list = new ArrayList<>(inflicted);
+			inflicted.clear();
+		}
+		for (Object[] o : list) {
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff b = (com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff) o[1];
+			if (b.target == null) continue; //already gone again
+			if (!DuelSync.worthSending(b)) continue;
+			try {
+				Bundle e = new Bundle();
+				e.put("e", "buff");
+				e.put("t", (Integer) o[0]);
+				e.put("b", DuelSync.packBuff(b));
+				e.put("n", b.getClass().getSimpleName());
+				addEvent(e);
+			} catch (Exception ex) {
+				DuelTestDriver.log("couldn't send " + b.getClass().getSimpleName() + ": " + ex);
+			}
+		}
+	}
+
 	static String describeEvents(Collection<Bundle> evs) {
 		StringBuilder sb = new StringBuilder("[");
 		for (Bundle e : evs) {
@@ -827,6 +901,11 @@ public class DuelGame {
 			if (e.contains("t")) sb.append(" ").append(e.getInt("t"));
 			if (e.contains("p")) sb.append("@").append(e.getInt("p"));
 			if (e.contains("a")) sb.append(" ").append(e.getInt("a"));
+			if (e.contains("n")) sb.append(" ").append(e.getString("n"));
+			if (e.contains("c")) {
+				String c = e.getString("c");
+				sb.append(" ").append(c.substring(c.lastIndexOf('.') + 1));
+			}
 		}
 		return sb.append("]").toString();
 	}

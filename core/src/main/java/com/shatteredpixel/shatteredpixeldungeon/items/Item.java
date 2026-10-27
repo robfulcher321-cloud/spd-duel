@@ -641,6 +641,9 @@ public class Item implements Bundlable {
 	public void cast( final Hero user, final int dst ) {
 		
 		final int cell = throwPos( user, dst );
+		if (user == com.shatteredpixel.shatteredpixeldungeon.Dungeon.hero) {
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.recordThrow(getClass(), cell);
+		}
 		user.sprite.zap( cell );
 		user.busy();
 
@@ -707,6 +710,13 @@ public class Item implements Bundlable {
 	
 	protected static Hero curUser = null;
 	protected static Item curItem = null;
+
+	//SPD Duel: lets another player's wand effect be drawn from their figure; returns who it was
+	public static Hero duelSetUser( Hero hero ){
+		Hero old = curUser;
+		curUser = hero;
+		return old;
+	}
 	public void setCurrent( Hero hero ){
 		curUser = hero;
 		curItem = this;

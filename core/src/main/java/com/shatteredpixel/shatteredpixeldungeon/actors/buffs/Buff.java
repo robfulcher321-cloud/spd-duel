@@ -211,4 +211,10 @@ public class Buff extends Actor {
 	public interface DOTbuff {
 		int totalIncomingDMG();
 	}
+
+	//SPD Duel: copies of buffs arriving from another phone keep their remaining duration
+	public void duelSetCooldown( float time ){
+		timeToNow();
+		spendConstant( Math.max( 0, time ) );
+	}
 }

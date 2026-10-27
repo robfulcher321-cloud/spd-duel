@@ -438,6 +438,14 @@ public abstract class Wand extends Item {
 		return 1;
 	}
 	
+	//SPD Duel: just the visual of this wand's bolt, for playing back another player's zap
+	public void duelFx(Ballistica bolt) {
+		fx(bolt, new Callback() {
+			@Override
+			public void call() {}
+		});
+	}
+
 	public void fx(Ballistica bolt, Callback callback) {
 		MagicMissile.boltFromChar( curUser.sprite.parent,
 				MagicMissile.MAGIC_MISSILE,
@@ -764,6 +772,7 @@ public abstract class Wand extends Item {
 									}
 								});
 					} else {
+						com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.recordZap(curWand.getClass(), shot.collisionPos);
 						curWand.fx(shot, new Callback() {
 							public void call() {
 								curWand.onZap(shot);

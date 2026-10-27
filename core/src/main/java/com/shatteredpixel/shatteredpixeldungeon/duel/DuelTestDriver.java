@@ -20,13 +20,14 @@ package com.shatteredpixel.shatteredpixeldungeon.duel;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill;
-import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
 import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
+import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfLiquidFlame;
+import com.shatteredpixel.shatteredpixeldungeon.items.wands.Wand;
+import com.shatteredpixel.shatteredpixeldungeon.items.wands.WandOfFrost;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Callback;
@@ -39,8 +40,8 @@ import com.watabou.utils.PathFinder;
  *   SPD_DUELMODE  = ffa | 2v1 (teams: host alone against everyone else)
  *   SPD_DUELSEAT  = joiner number, used to stagger joining
  * Players walk to the nearest enemy and attack. The host also knocks its target back a
- * tile, and one joiner puts its target to sleep/slows/paralyses it, to exercise pushes and
- * local effects. Every turn is logged; a stall prints what every thread is doing.
+ * tile, and joiner 1 throws a fire potion, zaps a frost wand and slows/paralyses its target,
+ * to exercise pushes, effects and the shared arena. Every turn is logged; a stall prints what every thread is doing.
  */
 public class DuelTestDriver {
 
@@ -77,6 +78,8 @@ public class DuelTestDriver {
 	private static volatile int actions = 0;
 	private static boolean configured = false;
 	private static boolean pushed = false;
+	private static boolean threw = false;
+	private static boolean zapped = false;
 	private static final int MAX_ACTIONS = 60;
 
 	static void progress(String what) {
@@ -202,12 +205,37 @@ public class DuelTestDriver {
 				DuelController.EventPlayer.slide(target, to);
 			}
 		}
-		if (actions == 4 && "1".equals(env("SPD_DUELSEAT", ""))) {
-			log("STRESS: sleep/slow/chill/paralysis on " + target.name());
-			Buff.affect(target, MagicalSleep.class);
-			Buff.prolong(target, Slow.class, 10f);
-			Buff.prolong(target, Chill.class, 10f);
-			Buff.prolong(target, Paralysis.class, 5f);
+		//stress (joiner 1): a fire potion, a frost bolt, then slow + paralysis, all of which must
+		//really happen to the victim's hero and show on everyone's screen
+		if ("1".equals(env("SPD_DUELSEAT", ""))) {
+			if (actions == 2 && !threw) {
+				threw = true;
+				actions++;
+				PotionOfLiquidFlame p = new PotionOfLiquidFlame();
+				p.identify();
+				if (p.collect()) {
+					progress("STRESS: throwing liquid flame at " + target.name() + " at " + target.pos);
+					p.cast(h, target.pos);
+					return;
+				}
+			}
+			if (actions == 5 && !zapped) {
+				zapped = true;
+				actions++;
+				WandOfFrost w = new WandOfFrost();
+				w.identify();
+				if (w.collect()) {
+					progress("STRESS: zapping frost at " + target.name() + " at " + target.pos);
+					w.execute(h, Wand.AC_ZAP);
+					GameScene.handleCell(target.pos);
+					return;
+				}
+			}
+			if (actions == 8) {
+				log("STRESS: slow + paralysis on " + target.name());
+				Buff.prolong(target, Slow.class, 3f);
+				Buff.prolong(target, Paralysis.class, 2f);
+			}
 		}
 
 		int cell;

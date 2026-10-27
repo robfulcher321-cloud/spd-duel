@@ -412,6 +412,11 @@ public class Potion extends Item {
 		return handler != null && handler.known().size() == Generator.Category.POTION.classes.length;
 	}
 	
+	//SPD Duel: for showing another player's thrown potion breaking
+	public int duelSplashColor(){
+		return splashColor();
+	}
+
 	protected int splashColor(){
 		return anonymous ? 0x00AAFF : ItemSprite.pick( image, 5, 9 );
 	}

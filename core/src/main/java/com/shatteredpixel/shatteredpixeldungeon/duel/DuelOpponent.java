@@ -18,7 +18,10 @@
 package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.blobs.Blob;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
 
@@ -128,10 +131,26 @@ public class DuelOpponent extends Mob {
 
 	@Override
 	public void damage(int dmg, Object src) {
-		if (DuelGame.active() && !DuelGame.isOver() && owner != null && owner.alive) {
+		//fire, gas, bleeding etc. hurt the real hero on its own phone, from the copied arena and buffs
+		boolean lingering = src instanceof Blob || src instanceof Buff;
+		if (!lingering && DuelGame.active() && !DuelGame.isOver() && owner != null && owner.alive) {
 			DuelGame.recordDamage(ownerId(), dmg);
 		}
 		super.damage(dmg, src);
+	}
+
+	// ------------------------------------------------------------- buffs
+
+	/** True while copying buffs from another phone, so they aren't sent back out. */
+	boolean applyingSnapshot = false;
+
+	@Override
+	public synchronized boolean add(Buff buff) {
+		if (!super.add(buff)) return false;
+		//buffs on a figure are for show: they never tick here (the real one ticks on its owner's phone)
+		Actor.remove(buff);
+		if (!applyingSnapshot) DuelGame.buffInflicted(ownerId(), buff);
+		return true;
 	}
 
 	@Override
