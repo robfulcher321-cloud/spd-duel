@@ -152,6 +152,21 @@ public class DuelOpponent extends Mob {
 
 	@Override
 	protected boolean act() {
+		try {
+			return doAct();
+		} catch (Throwable t) {
+			//never let a duel bug freeze the game: report it and carry on
+			com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon.reportException(t);
+			DuelTestDriver.log("ERROR in opponent act: " + t);
+			GLog.n("Duel error: " + t.getClass().getSimpleName() + " " + t.getMessage());
+			waiting = false;
+			spend(TICK);
+			return true;
+		}
+	}
+
+	private boolean doAct() {
+		DuelTestDriver.log("opponent act at time " + Actor.now() + " (reported=" + reportedSinceLastTurn + ", waiting=" + waiting + ")");
 		if (fieldOfView == null || fieldOfView.length != Dungeon.level.length()) {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
@@ -185,6 +200,7 @@ public class DuelOpponent extends Mob {
 
 		waiting = false;
 		reportedSinceLastTurn = false;
+		DuelTestDriver.progress("replaying their turn " + turn.getInt("seq"));
 		return replay(turn);
 	}
 

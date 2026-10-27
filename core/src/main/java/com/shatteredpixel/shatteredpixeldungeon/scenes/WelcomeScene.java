@@ -84,7 +84,8 @@ public class WelcomeScene extends PixelScene {
 		//SPD Duel: always land on the title screen (where the Duel button is), never auto-start the tutorial run
 		SPDSettings.intro(false);
 
-		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelSelfTest.enabled()) {
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelSelfTest.enabled()
+				|| com.shatteredpixel.shatteredpixeldungeon.duel.DuelTestDriver.enabled()) {
 			SPDSettings.version(ShatteredPixelDungeon.versionCode);
 			ShatteredPixelDungeon.switchNoFade(TitleScene.class);
 			return;

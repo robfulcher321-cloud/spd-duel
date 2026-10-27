@@ -44,14 +44,35 @@ jobs:
             ./gradlew --no-daemon desktop:debug 2>&1 | tee selftest.log
           grep -q "SELFTEST PASS" selftest.log
 
+      - name: Duel test (two copies of the game fighting over localhost)
+        id: dueltest
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          ./gradlew --no-daemon -q desktop:release
+          JAR=$(ls desktop/build/libs/*.jar | head -1)
+          echo "jar: $JAR"
+          SPD_DUELTEST=host XDG_DATA_HOME=/tmp/duel_host timeout 300 xvfb-run -n 91 -s "-screen 0 1024x768x24" \
+            java -jar "$JAR" > duel_host.log 2>&1 &
+          HOSTPID=$!
+          sleep 3
+          SPD_DUELTEST=join XDG_DATA_HOME=/tmp/duel_join timeout 300 xvfb-run -n 92 -s "-screen 0 1024x768x24" \
+            java -jar "$JAR" > duel_join.log 2>&1 &
+          JOINPID=$!
+          wait $HOSTPID || true
+          wait $JOINPID || true
+          grep -q "DUELTEST\[host\] PASS" duel_host.log && grep -q "DUELTEST\[join\] PASS" duel_join.log
+
       - name: Publish build log to ci-log branch
         if: always()
         run: |
           mkdir -p /tmp/log && cp build.log /tmp/log/ 2>/dev/null || echo "no log" > /tmp/log/build.log
           cp selftest.log /tmp/log/ 2>/dev/null || true
+          cp duel_host.log duel_join.log /tmp/log/ 2>/dev/null || true
           cp -r desktop/selftest /tmp/log/screens 2>/dev/null || true
           echo "result=${{ steps.build.outcome }}" > /tmp/log/status.txt
           echo "selftest=${{ steps.selftest.outcome }}" >> /tmp/log/status.txt
+          echo "dueltest=${{ steps.dueltest.outcome }}" >> /tmp/log/status.txt
           echo "commit=${{ github.sha }}" >> /tmp/log/status.txt
           cd /tmp/log
           git init -q -b ci-log

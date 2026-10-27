@@ -73,7 +73,7 @@ public class DesktopLauncher {
 		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 			@Override
 			public void uncaughtException(Thread thread, Throwable throwable) {
-				if (System.getenv("SPD_SELFTEST") != null) {
+				if ((System.getenv("SPD_SELFTEST") != null || System.getenv("SPD_DUELTEST") != null)) {
 					//automated test run: print the crash and quit, no dialog boxes
 					System.out.println("SELFTEST CRASH");
 					throwable.printStackTrace(System.out);
@@ -186,7 +186,7 @@ public class DesktopLauncher {
 		config.setMaximized(SPDSettings.windowMaximized());
 
 		//SPD Duel automated test: a phone-shaped window, no audio device needed
-		if (System.getenv("SPD_SELFTEST") != null) {
+		if ((System.getenv("SPD_SELFTEST") != null || System.getenv("SPD_DUELTEST") != null)) {
 			config.setWindowSizeLimits( 300, 300, -1, -1 );
 			config.setWindowedMode( 405, 720 );
 			config.setMaximized( false );

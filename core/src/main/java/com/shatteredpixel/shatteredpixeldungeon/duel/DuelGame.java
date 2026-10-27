@@ -293,6 +293,8 @@ public class DuelGame {
 					}
 				});
 			} else if ("turn".equals(type)) {
+				DuelTestDriver.progress("RECEIVED turn " + msg.getInt("seq") + ": pos " + msg.getInt("pos")
+						+ " hp " + msg.getInt("hp") + " dmg " + msg.getInt("dmg"));
 				incomingTurns.add(msg);
 				wakeOpponent();
 			} else if ("defeat".equals(type)) {
@@ -374,7 +376,9 @@ public class DuelGame {
 		lobby = null;
 		active = true;
 		over = false;
+		sentSeq = recvSeq = 0;
 		resetTurnTracking();
+		DuelTestDriver.progress("fight starting vs " + oppName);
 
 		Mob.clearHeldAllies();
 		GameLog.wipe();
@@ -431,12 +435,26 @@ public class DuelGame {
 		b.put("dmg", dealt);
 		b.put("attacked", attacked);
 		b.put("hit", hitSomething);
+		b.put("seq", ++sentSeq);
+		DuelTestDriver.progress("SENT turn " + sentSeq + ": pos " + me.pos + " hp " + me.HP + " dmg " + dealt
+				+ " attacked " + attacked + " | time " + Actor.now());
 		resetTurnTracking();
 		DuelNet.send(b);
 	}
 
+	private static int sentSeq = 0;
+	private static int recvSeq = 0;
+
 	public static Bundle pollTurn() {
-		return incomingTurns.poll();
+		Bundle b = incomingTurns.poll();
+		if (b != null) {
+			int seq = b.getInt("seq");
+			if (seq != recvSeq + 1) {
+				DuelTestDriver.log("OUT OF ORDER: expected turn " + (recvSeq + 1) + " got " + seq);
+			}
+			recvSeq = seq;
+		}
+		return b;
 	}
 
 	private static void wakeOpponent() {
