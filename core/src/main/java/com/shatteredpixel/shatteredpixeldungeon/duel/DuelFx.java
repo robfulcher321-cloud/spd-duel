@@ -116,6 +116,8 @@ public class DuelFx {
 		//only plain one-off emitters: missiles, blobs and buff auras are synced their own way
 		if (em.getClass() != Emitter.class || !recording()) return;
 		String key = keyOf(f);
+		float[] splash = Splash.duelInfo(f);
+		if (splash != null) key = "splash:" + (int) splash[0] + ":" + splash[1] + ":" + splash[2];
 		if (key == null) {
 			noteUnknown(f);
 			return;
@@ -162,15 +164,6 @@ public class DuelFx {
 		e.put("col", color);
 		e.put("lm", light);
 		e.put("a", new float[]{x, y, duration, spin});
-		send(e);
-	}
-
-	public static void splash(PointF p, float dir, float cone, int color, int n, float interval) {
-		if (!recording()) return;
-		Bundle e = fx("spl");
-		e.put("a", new float[]{p.x, p.y, dir, cone, interval});
-		e.put("col", color);
-		e.put("n", n);
 		send(e);
 	}
 
@@ -313,6 +306,10 @@ public class DuelFx {
 	}
 
 	static Emitter.Factory factoryFor(String key) {
+		if (key.startsWith("splash:")) {
+			String[] parts = key.split(":");
+			return Splash.duelFactory(Integer.parseInt(parts[1]), Float.parseFloat(parts[2]), Float.parseFloat(parts[3]));
+		}
 		if (key.startsWith("speck:")) {
 			String[] parts = key.split(":");
 			return Speck.factory(Integer.parseInt(parts[1]), parts.length > 2);

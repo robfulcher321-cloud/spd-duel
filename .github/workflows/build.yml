@@ -92,7 +92,7 @@ jobs:
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" ci-log
 
       - name: Publish APK as the "latest" release
-        if: steps.build.outcome == 'success'
+        if: steps.build.outcome == 'success' && steps.selftest.outcome == 'success' && steps.dueltest.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

@@ -233,7 +233,7 @@ public class DuelTestDriver {
 		//an enemy player's creature right next to me gets hit first
 		for (com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob m : Dungeon.level.mobs.toArray(new com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob[0])) {
 			if (m.duelOwner >= 0 && m.alignment == com.shatteredpixel.shatteredpixeldungeon.actors.Char.Alignment.ENEMY
-					&& Dungeon.level.adjacent(h.pos, m.pos)) {
+					&& m.invisible == 0 && Dungeon.level.adjacent(h.pos, m.pos)) {
 				actions++;
 				progress("my action " + actions + ": attack copy of " + m.getClass().getSimpleName() + " from player " + m.duelOwner);
 				if (h.handle(m.pos)) h.next();

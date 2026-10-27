@@ -33,6 +33,24 @@ import java.util.HashMap;
 
 public class Splash {
 	
+	//SPD Duel: describe a splash so another phone can make the same one, or null if f isn't a splash
+	public static float[] duelInfo( Emitter.Factory f ) {
+		if (!(f instanceof SplashFactory)) return null;
+		SplashFactory s = (SplashFactory) f;
+		return new float[]{ s.color, s.dir, s.cone };
+	}
+
+	public static Emitter.Factory duelFactory( int color, float dir, float cone ) {
+		if (!FACTORIES.containsKey(color)){
+			FACTORIES.put(color, new SplashFactory());
+		}
+		SplashFactory fact = FACTORIES.get(color);
+		fact.color = color;
+		fact.dir = dir;
+		fact.cone = cone;
+		return fact;
+	}
+
 	public static void at( int cell, final int color, int n ) {
 		at( DungeonTilemap.tileCenterToWorld( cell ), color, n );
 	}
@@ -100,7 +118,6 @@ public class Splash {
 		if (n <= 0) {
 			return;
 		}
-		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.splash( p, dir, cone, color, n, interval );
 
 		Emitter emitter = GameScene.emitter();
 		if (emitter == null) return;
