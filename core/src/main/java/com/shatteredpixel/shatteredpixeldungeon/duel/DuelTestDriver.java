@@ -76,6 +76,7 @@ public class DuelTestDriver {
 	private static volatile long lastProgress = System.currentTimeMillis();
 	private static volatile int actions = 0;
 	private static boolean configured = false;
+	private static boolean pushed = false;
 	private static final int MAX_ACTIONS = 60;
 
 	static void progress(String what) {
@@ -192,7 +193,8 @@ public class DuelTestDriver {
 		if (target == null) return;
 
 		//stress: knockback and local status effects
-		if (actions == 3 && "host".equals(mode()) && Dungeon.level.adjacent(h.pos, target.pos)) {
+		if (!pushed && actions >= 3 && "host".equals(mode()) && Dungeon.level.adjacent(h.pos, target.pos)) {
+			pushed = true;
 			int away = target.pos + (target.pos - h.pos);
 			int to = DuelController.EventPlayer.freeCellNear(away, target);
 			if (to >= 0 && to != target.pos) {

@@ -265,6 +265,7 @@ public class DuelController extends Actor {
 			to = freeCellNear(to, me);
 			if (to < 0 || to == me.pos) return;
 			int from = me.pos;
+			DuelTestDriver.progress("I was pushed from " + from + " to " + to);
 			me.interrupt();
 			me.pos = to;
 			Dungeon.level.occupyCell(me);

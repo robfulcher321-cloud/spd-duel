@@ -614,11 +614,10 @@ public class DuelGame {
 		DuelArenaLevel arena = new DuelArenaLevel();
 		arena.create();
 
-		int myTeam = me().team;
 		for (Player p : roster) {
 			if (p.id == myId) continue;
 			DuelOpponent puppet = new DuelOpponent();
-			boolean ally = mode == MODE_TEAMS && p.team == myTeam;
+			boolean ally = !isEnemy(p);
 			puppet.setup(p, DuelArenaLevel.spawn(indexOf(roster, p)), ally);
 			p.puppet = puppet;
 			arena.mobs.add(puppet);
@@ -659,9 +658,14 @@ public class DuelGame {
 		return 0;
 	}
 
+	/** Which side a player is on: their team in Teams mode, just themselves in Free-for-all. */
+	static int sideOf(Player p) {
+		return mode == MODE_TEAMS ? p.team : 100 + p.id;
+	}
+
 	static boolean isEnemy(Player p) {
 		if (p == null || p.id == myId) return false;
-		return mode != MODE_TEAMS || p.team != me().team;
+		return sideOf(p) != sideOf(me());
 	}
 
 	public static String describe(Player p) {
@@ -867,16 +871,16 @@ public class DuelGame {
 		if (over) return;
 		ArrayList<Integer> teams = new ArrayList<>();
 		for (Player p : players()) {
-			if (p.alive && !teams.contains(p.team)) teams.add(p.team);
+			if (p.alive && !teams.contains(sideOf(p))) teams.add(sideOf(p));
 		}
 		if (teams.size() > 1) return;
 
 		over = true;
 		Player me = me();
-		boolean won = me != null && !teams.isEmpty() && me.team == teams.get(0);
+		boolean won = me != null && !teams.isEmpty() && sideOf(me) == teams.get(0);
 		StringBuilder winners = new StringBuilder();
 		for (Player p : players()) {
-			if (!teams.isEmpty() && p.team == teams.get(0)) {
+			if (!teams.isEmpty() && sideOf(p) == teams.get(0)) {
 				if (winners.length() > 0) winners.append(" and ");
 				winners.append(p.id == myId ? "you" : describe(p));
 			}
