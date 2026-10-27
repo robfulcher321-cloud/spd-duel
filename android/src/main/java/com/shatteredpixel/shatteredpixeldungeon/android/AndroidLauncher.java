@@ -134,6 +134,29 @@ public class AndroidLauncher extends AndroidApplication {
 
 		//SPD Duel: in-game updates
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelUpdate.installer = new AndroidDuelInstaller(this);
+		//SPD Duel: keep Wi-Fi broadcast packets while the Join screen is looking for hosts
+		final android.content.Context appContext = getApplicationContext();
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelNet.wifi = new com.shatteredpixel.shatteredpixeldungeon.duel.DuelNet.WifiHook() {
+			private android.net.wifi.WifiManager.MulticastLock lock;
+			@Override
+			public synchronized void listenForBroadcasts(boolean on) {
+				try {
+					if (on) {
+						if (lock == null) {
+							android.net.wifi.WifiManager wm = (android.net.wifi.WifiManager) appContext.getSystemService(android.content.Context.WIFI_SERVICE);
+							if (wm == null) return;
+							lock = wm.createMulticastLock("spd-duel-discovery");
+							lock.setReferenceCounted(false);
+						}
+						lock.acquire();
+					} else if (lock != null && lock.isHeld()) {
+						lock.release();
+					}
+				} catch (Exception ignored) {
+					//without the lock, asking each address directly still finds hosts
+				}
+			}
+		};
 
 		//Shattered still overrides the back gesture behaviour, but we need to do it in a new way
 		// (API added in Android 13, functionality enforced in Android 16)

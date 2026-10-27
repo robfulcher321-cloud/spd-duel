@@ -357,7 +357,7 @@ public class WndDuel extends WndOptions {
 
 			RenderedTextBlock text = PixelScene.renderTextBlock(6);
 			text.text(hosts.isEmpty()
-					? "Looking for matches on this network...\n\nIf nothing appears after a few seconds, enter the IP shown on the host's phone."
+					? "Looking for hosted matches on your Wi-Fi, hotspot and ZeroTier networks...\n\nThe host needs to be sitting in their lobby. If nothing shows up within about 10 seconds, you can still type the IP shown in the host's lobby."
 					: "Tap a game to join it:", w);
 			text.setPos(0, y);
 			add(text);

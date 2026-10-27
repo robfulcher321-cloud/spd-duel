@@ -50,6 +50,7 @@ public class Beam extends Image {
 		scale.x = (float)Math.sqrt( dx * dx + dy * dy ) / width;
 		
 		timeLeft = this.duration = duration;
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.beam( this, s, e );
 	}
 
 	public static class DeathRay extends Beam{

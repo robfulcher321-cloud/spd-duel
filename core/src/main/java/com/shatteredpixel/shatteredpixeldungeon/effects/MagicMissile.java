@@ -115,6 +115,7 @@ public class MagicMissile extends Emitter {
 	}
 
 	public void reset( int type, PointF from, PointF to, Callback callback ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.missile( type, from, to );
 		this.callback = callback;
 		
 		this.to = to;

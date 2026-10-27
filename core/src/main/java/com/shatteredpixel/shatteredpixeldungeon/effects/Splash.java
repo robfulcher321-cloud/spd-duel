@@ -100,6 +100,7 @@ public class Splash {
 		if (n <= 0) {
 			return;
 		}
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.splash( p, dir, cone, color, n, interval );
 
 		Emitter emitter = GameScene.emitter();
 		if (emitter == null) return;

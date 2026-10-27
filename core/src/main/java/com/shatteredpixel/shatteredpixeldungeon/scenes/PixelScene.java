@@ -404,6 +404,7 @@ public class PixelScene extends Scene {
 	}
 	
 	public static void shake( float magnitude, float duration){
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.shake( magnitude, duration );
 		magnitude *= SPDSettings.screenShake();
 		Camera.main.shake(magnitude, duration);
 	}

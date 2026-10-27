@@ -56,6 +56,8 @@ public class DuelNet {
 
 	public static final int TCP_PORT = 52900;
 	public static final int UDP_PORT = 52901;
+	//the host answers "anyone hosting?" questions sent straight to it on this port
+	public static final int PROBE_PORT = 52902;
 	private static final String BEACON_TAG = "SPDDUEL2";
 	private static final int MAX_MESSAGE = 4 * 1024 * 1024;
 
@@ -105,6 +107,20 @@ public class DuelNet {
 	private static DatagramSocket beaconSocket;
 	private static volatile String beaconLabel = "";
 	private static DatagramSocket discoverySocket;
+	private static DatagramSocket probeSocket;
+	private static DatagramSocket answerSocket;
+
+	/**
+	 * Android: phones on Wi-Fi throw away broadcast packets to save battery unless the app
+	 * asks to keep them. The Android launcher fills this in.
+	 */
+	public interface WifiHook {
+		void listenForBroadcasts(boolean on);
+	}
+	public static volatile WifiHook wifi;
+
+	/** Tests only: don't listen for broadcasts, so the direct "anyone hosting?" search is what's tested. */
+	static volatile boolean testNoBroadcast = false;
 	private static final LinkedHashMap<String, FoundHost> found = new LinkedHashMap<>();
 
 	public static int connectionCount() {
@@ -130,6 +146,7 @@ public class DuelNet {
 					serverSocket.setReuseAddress(true);
 					serverSocket.bind(new InetSocketAddress(TCP_PORT));
 					startBeacon();
+					startAnswering();
 					while (running && accepting) {
 						Socket s = serverSocket.accept();
 						if (!accepting) {
@@ -195,6 +212,39 @@ public class DuelNet {
 		DatagramSocket b = beaconSocket;
 		beaconSocket = null;
 		if (b != null) b.close();
+		DatagramSocket a = answerSocket;
+		answerSocket = null;
+		if (a != null) a.close();
+	}
+
+	/** Host: answer phones that ask every address on their network "anyone hosting?". */
+	private static void startAnswering() {
+		Thread t = new Thread("Duel probe answers") {
+			@Override
+			public void run() {
+				try {
+					DatagramSocket rs = new DatagramSocket((java.net.SocketAddress) null);
+					rs.setReuseAddress(true);
+					rs.bind(new InetSocketAddress(PROBE_PORT));
+					answerSocket = rs;
+					byte[] buf = new byte[64];
+					while (running && accepting && answerSocket == rs) {
+						DatagramPacket p = new DatagramPacket(buf, buf.length);
+						rs.receive(p);
+						String q = new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8);
+						if (!q.equals(BEACON_TAG + "?")) continue;
+						byte[] data = (BEACON_TAG + "|" + beaconLabel).getBytes(StandardCharsets.UTF_8);
+						try {
+							rs.send(new DatagramPacket(data, data.length, p.getSocketAddress()));
+						} catch (IOException ignored) {}
+					}
+				} catch (Exception ignored) {
+					//socket closed when the match starts; broadcast and typed IPs still work
+				}
+			}
+		};
+		t.setDaemon(true);
+		t.start();
 	}
 
 	private static ArrayList<InetAddress> broadcastTargets() {
@@ -226,6 +276,7 @@ public class DuelNet {
 				try {
 					Socket s = new Socket();
 					s.connect(new InetSocketAddress(ip.trim(), TCP_PORT), 8000);
+					rememberHost(ip.trim());
 					attach(HOST_PEER, s);
 				} catch (IOException e) {
 					Listener li = listener;
@@ -238,11 +289,132 @@ public class DuelNet {
 		t.start();
 	}
 
+	private static void noteHost(DatagramPacket p) {
+		String s = new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8);
+		if (!s.startsWith(BEACON_TAG + "|")) return;
+		String ip = p.getAddress().getHostAddress();
+		String label = s.substring(BEACON_TAG.length() + 1);
+		synchronized (found) {
+			FoundHost h = found.get(ip);
+			if (h == null || !h.label.equals(label)) {
+				h = new FoundHost(ip, label);
+				found.put(ip, h);
+			}
+			h.lastSeen = System.currentTimeMillis();
+		}
+	}
+
+	private static final String RECENT_KEY = "duel_recent_hosts";
+
+	/** Remember a host that worked, so it's asked directly next time (handy on ZeroTier). */
+	public static void rememberHost(String ip) {
+		try {
+			ArrayList<String> list = recentHosts();
+			list.remove(ip);
+			list.add(0, ip);
+			while (list.size() > 6) list.remove(list.size() - 1);
+			StringBuilder sb = new StringBuilder();
+			for (String s : list) sb.append(sb.length() > 0 ? "," : "").append(s);
+			com.watabou.utils.GameSettings.put(RECENT_KEY, sb.toString());
+		} catch (Exception ignored) {}
+	}
+
+	static ArrayList<String> recentHosts() {
+		ArrayList<String> list = new ArrayList<>();
+		try {
+			String v = com.watabou.utils.GameSettings.getString(RECENT_KEY, "", 200);
+			for (String s : v.split(",")) if (!s.trim().isEmpty()) list.add(s.trim());
+		} catch (Exception ignored) {}
+		return list;
+	}
+
+	/**
+	 * Every address worth asking: each address on each network this phone is on (Wi-Fi,
+	 * hotspot, ZeroTier...), up to about a thousand per network, plus recent hosts and the
+	 * broadcast addresses. Big networks are narrowed to the 256 addresses around this phone.
+	 */
+	static ArrayList<InetAddress> probeTargets() {
+		java.util.LinkedHashSet<InetAddress> result = new java.util.LinkedHashSet<>();
+		for (String ip : recentHosts()) {
+			try { result.add(InetAddress.getByName(ip)); } catch (Exception ignored) {}
+		}
+		try {
+			for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+				if (!ni.isUp() || ni.isLoopback()) continue;
+				for (java.net.InterfaceAddress ia : ni.getInterfaceAddresses()) {
+					if (!(ia.getAddress() instanceof Inet4Address)) continue;
+					byte[] b = ia.getAddress().getAddress();
+					int ip = ((b[0] & 0xFF) << 24) | ((b[1] & 0xFF) << 16) | ((b[2] & 0xFF) << 8) | (b[3] & 0xFF);
+					int prefix = ia.getNetworkPrefixLength();
+					if (prefix < 22 || prefix > 30) prefix = 24;
+					int mask = prefix == 0 ? 0 : (int) (0xFFFFFFFFL << (32 - prefix));
+					int net = ip & mask;
+					int size = 1 << (32 - prefix);
+					for (int i = 1; i < size - 1; i++) {
+						int a = net + i;
+						result.add(InetAddress.getByAddress(new byte[]{
+								(byte) (a >>> 24), (byte) (a >>> 16), (byte) (a >>> 8), (byte) a}));
+					}
+					if (ia.getBroadcast() != null) result.add(ia.getBroadcast());
+				}
+			}
+		} catch (Exception ignored) {}
+		try {
+			result.add(InetAddress.getByName("255.255.255.255"));
+		} catch (Exception ignored) {}
+		return new ArrayList<>(result);
+	}
+
+	/** Joiner: ask every address on my networks "anyone hosting?" every couple of seconds. */
+	private static void startProbing() {
+		Thread t = new Thread("Duel probe") {
+			@Override
+			public void run() {
+				try {
+					DatagramSocket ps = new DatagramSocket();
+					ps.setBroadcast(true);
+					ps.setSoTimeout(200);
+					probeSocket = ps;
+					byte[] q = (BEACON_TAG + "?").getBytes(StandardCharsets.UTF_8);
+					byte[] buf = new byte[512];
+					while (probeSocket == ps) {
+						for (InetAddress a : probeTargets()) {
+							if (probeSocket != ps) return;
+							try {
+								ps.send(new DatagramPacket(q, q.length, a, PROBE_PORT));
+							} catch (IOException ignored) {
+								//unreachable address or interface: carry on
+							}
+						}
+						long until = System.currentTimeMillis() + 2000;
+						while (probeSocket == ps && System.currentTimeMillis() < until) {
+							DatagramPacket p = new DatagramPacket(buf, buf.length);
+							try {
+								ps.receive(p);
+								noteHost(p);
+							} catch (SocketTimeoutException ignored) {}
+						}
+					}
+				} catch (Exception ignored) {
+					//socket closed
+				}
+			}
+		};
+		t.setDaemon(true);
+		t.start();
+	}
+
 	public static void startDiscovery() {
 		stopDiscovery();
 		synchronized (found) {
 			found.clear();
 		}
+		WifiHook w = wifi;
+		if (w != null) {
+			try { w.listenForBroadcasts(true); } catch (Exception ignored) {}
+		}
+		startProbing();
+		if (testNoBroadcast) return;
 		Thread t = new Thread("Duel discovery") {
 			@Override
 			public void run() {
@@ -261,18 +433,7 @@ public class DuelNet {
 						} catch (SocketTimeoutException e) {
 							continue;
 						}
-						String s = new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8);
-						if (!s.startsWith(BEACON_TAG + "|")) continue;
-						String ip = p.getAddress().getHostAddress();
-						String label = s.substring(BEACON_TAG.length() + 1);
-						synchronized (found) {
-							FoundHost h = found.get(ip);
-							if (h == null || !h.label.equals(label)) {
-								h = new FoundHost(ip, label);
-								found.put(ip, h);
-							}
-							h.lastSeen = System.currentTimeMillis();
-						}
+						noteHost(p);
 					}
 				} catch (Exception ignored) {
 					//socket closed or broadcast not allowed; manual IP entry still works
@@ -298,6 +459,13 @@ public class DuelNet {
 		DatagramSocket ds = discoverySocket;
 		discoverySocket = null;
 		if (ds != null) ds.close();
+		DatagramSocket ps = probeSocket;
+		probeSocket = null;
+		if (ps != null) ps.close();
+		WifiHook w = wifi;
+		if (w != null) {
+			try { w.listenForBroadcasts(false); } catch (Exception ignored) {}
+		}
 	}
 
 	// ---------------------------------------------------------------- connections

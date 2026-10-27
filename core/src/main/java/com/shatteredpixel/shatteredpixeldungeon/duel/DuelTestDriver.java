@@ -79,6 +79,10 @@ public class DuelTestDriver {
 	private static boolean configured = false;
 	private static boolean pushed = false;
 	private static boolean threw = false;
+	private static boolean imaged = false;
+	private static boolean leapt = false;
+	private static DuelGame.LobbyListener pendingLobby = null;
+	private static long searchStart = 0;
 	private static boolean zapped = false;
 	private static final int MAX_ACTIONS = 60;
 
@@ -116,8 +120,17 @@ public class DuelTestDriver {
 							public void onStatus(String text) { log("lobby: " + text); }
 							public void onFailed(String reason) { log("lobby FAILED: " + reason); exit(3); }
 						};
-						if (host) DuelGame.hostLobby(l);
-						else DuelGame.joinLobby("127.0.0.1", l);
+						if (host) {
+							DuelGame.hostLobby(l);
+						} else if (env("SPD_DUELDISCOVER", "").isEmpty()) {
+							DuelGame.joinLobby("127.0.0.1", l);
+						} else {
+							//find the host the way a player would: the Join screen's search
+							if ("probe".equals(env("SPD_DUELDISCOVER", ""))) DuelNet.testNoBroadcast = true;
+							DuelNet.startDiscovery();
+							pendingLobby = l;
+							log("searching for a hosted match...");
+						}
 					}
 				});
 
@@ -156,6 +169,28 @@ public class DuelTestDriver {
 
 	/** Render thread, a few times a second. */
 	private static void step() {
+		if (exiting) return;
+		//joiner searching for the host
+		if (pendingLobby != null) {
+			if (searchStart == 0) searchStart = System.currentTimeMillis();
+			java.util.ArrayList<DuelNet.FoundHost> hosts = DuelNet.foundHosts();
+			if (!hosts.isEmpty()) {
+				DuelNet.FoundHost h = hosts.get(0);
+				progress("found hosted match '" + h.label + "' at " + h.ip + " after "
+						+ (System.currentTimeMillis() - searchStart) + "ms");
+				DuelNet.stopDiscovery();
+				DuelGame.LobbyListener l = pendingLobby;
+				pendingLobby = null;
+				DuelGame.joinLobby(h.ip, l);
+			} else if (System.currentTimeMillis() - searchStart > 20000) {
+				log("SEARCH FAILED: no hosted match found in 20s");
+				exit(5);
+			} else {
+				lastProgress = System.currentTimeMillis();
+			}
+			return;
+		}
+
 		//host: when everyone's in, set the teams and start
 		if ("host".equals(mode()) && DuelGame.inLobby() && !configured) {
 			int want = Integer.parseInt(env("SPD_DUELPLAYERS", "2"));
@@ -194,6 +229,45 @@ public class DuelTestDriver {
 			if (d < best) { best = d; target = p.puppet; }
 		}
 		if (target == null) return;
+
+		//an enemy player's creature right next to me gets hit first
+		for (com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob m : Dungeon.level.mobs.toArray(new com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob[0])) {
+			if (m.duelOwner >= 0 && m.alignment == com.shatteredpixel.shatteredpixeldungeon.actors.Char.Alignment.ENEMY
+					&& Dungeon.level.adjacent(h.pos, m.pos)) {
+				actions++;
+				progress("my action " + actions + ": attack copy of " + m.getClass().getSimpleName() + " from player " + m.duelOwner);
+				if (h.handle(m.pos)) h.next();
+				return;
+			}
+		}
+
+		//stress (joiner 2): mirror images, creatures that must show and be hittable on every phone
+		if ("2".equals(env("SPD_DUELSEAT", "")) && actions == 1 && !imaged) {
+			imaged = true;
+			int n = com.shatteredpixel.shatteredpixeldungeon.items.scrolls.ScrollOfMirrorImage.spawnImages(h, 2);
+			progress("STRESS: summoned " + n + " mirror images");
+		}
+
+		//stress (host): the warrior's armour ability (heroic leap) next to its target
+		if ("host".equals(mode()) && actions == 6 && !leapt) {
+			leapt = true;
+			com.shatteredpixel.shatteredpixeldungeon.items.armor.Armor ar = h.belongings.armor();
+			if (ar instanceof com.shatteredpixel.shatteredpixeldungeon.items.armor.ClassArmor && h.armorAbility != null) {
+				int land = -1;
+				for (int n : PathFinder.NEIGHBOURS8) {
+					int c = target.pos + n;
+					if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c] && Actor.findChar(c) == null
+							&& c != h.pos) { land = c; break; }
+				}
+				if (land >= 0) {
+					actions++;
+					progress("STRESS: " + h.armorAbility.name() + " to " + land + " next to " + target.name());
+					ar.execute(h, ar.defaultAction());
+					GameScene.handleCell(land);
+					return;
+				}
+			}
+		}
 
 		//stress: knockback and local status effects
 		if (!pushed && actions >= 3 && "host".equals(mode()) && Dungeon.level.adjacent(h.pos, target.pos)) {

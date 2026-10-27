@@ -153,15 +153,24 @@ public class DuelController extends Actor {
 
 	// ======================================================================== playback of one turn
 
-	/** Plays one player's turn on my screen: walking, swings, hits and pushes, in order. */
+	/**
+	 * Plays one player's turn on my screen, at the pace it happened on their phone: walking,
+	 * swings, hits, pushes, buffs, their creatures, and every sound and visual effect.
+	 */
 	static class EventPlayer {
 
 		final int from;
 		private final Bundle msg;
 		private final Bundle[] events;
 		private int next = 0;
-		private float wait = 0;
 		private DuelOpponent mover;
+
+		//playback clock, and when the next event is due on it
+		private float clock = 0;
+		private float due = 0;
+		private float lastAt = -1;
+
+		private static final float MAX_GAP = 0.6f;
 
 		EventPlayer(Bundle msg) {
 			this.msg = msg;
@@ -173,21 +182,29 @@ public class DuelController extends Actor {
 
 		/** True while there's still something to play. */
 		boolean update() {
-			if (wait > 0) {
-				wait -= Game.elapsed;
-				return true;
-			}
-			if (mover != null && mover.sprite != null && mover.sprite.isMoving) {
-				return true; //let the step finish
-			}
-			if (next < events.length) {
-				try {
-					play(events[next++]);
-				} catch (Exception e) {
-					DuelTestDriver.log("ERROR playing event: " + e);
+			clock += Game.elapsed;
+			while (next < events.length) {
+				Bundle e = events[next];
+				String type = e.getString("e");
+				//timing: same gaps as on the sender's phone (older messages: a short fixed gap)
+				float at = e.contains("at") ? e.getFloat("at") : (lastAt < 0 ? 0 : lastAt + 0.25f);
+				float gap = lastAt < 0 ? 0 : Math.max(0, Math.min(at - lastAt, MAX_GAP));
+				if (clock < due + gap) return true;
+				//a step waits for the previous step to finish
+				if (("move".equals(type) || "push".equals(type))
+						&& mover != null && mover.sprite != null && mover.sprite.isMoving) {
+					return true;
 				}
-				return true;
+				due += gap;
+				lastAt = at;
+				next++;
+				try {
+					play(e);
+				} catch (Exception ex) {
+					DuelTestDriver.log("ERROR playing event " + type + ": " + ex);
+				}
 			}
+			if (mover != null && mover.sprite != null && mover.sprite.isMoving) return true;
 			finish();
 			return false;
 		}
@@ -196,23 +213,17 @@ public class DuelController extends Actor {
 			String type = e.getString("e");
 			Hero me = Dungeon.hero;
 
-			if ("move".equals(type)) {
-				if (mover != null) {
-					slide(mover, e.getInt("p"));
-					wait = 0.02f;
-				}
+			if ("fx".equals(type)) {
+				DuelFx.play(e);
+
+			} else if ("move".equals(type)) {
+				if (mover != null) slide(mover, e.getInt("p"));
 
 			} else if ("swing".equals(type)) {
+				//the swing itself is shown by the recorded animation; a miss on me shows how I avoided it
 				int t = e.getInt("t");
-				Char target = charFor(t);
-				//thrown/shot attacks were already shown flying by the throw event
-				if (mover != null && mover.sprite != null && target != null && !e.getBoolean("r")) {
-					mover.sprite.attack(target.pos);
-					wait = 0.3f;
-				}
 				if (t == DuelGame.myId() && !e.getBoolean("h") && me != null && me.isAlive()) {
 					me.sprite.showStatus(CharSprite.NEUTRAL, me.defenseVerb());
-					Sample.INSTANCE.play(Assets.Sounds.MISS);
 				}
 
 			} else if ("dmg".equals(type)) {
@@ -220,7 +231,6 @@ public class DuelController extends Actor {
 				int amount = e.getInt("a");
 				if (t == DuelGame.myId()) {
 					if (me != null && me.isAlive()) {
-						Sample.INSTANCE.play(Assets.Sounds.HIT);
 						me.damage(amount, mover != null ? mover : me);
 					}
 				} else {
@@ -230,7 +240,6 @@ public class DuelController extends Actor {
 						p.puppet.showHit(amount);
 					}
 				}
-				wait = 0.15f;
 
 			} else if ("push".equals(type)) {
 				int t = e.getInt("t");
@@ -241,25 +250,34 @@ public class DuelController extends Actor {
 					DuelGame.Player p = DuelGame.player(t);
 					if (p != null && p.puppet != null) slide(p.puppet, to);
 				}
-				wait = 0.2f;
 
 			} else if ("throw".equals(type)) {
 				showThrow(e.getString("c"), e.getInt("p"));
-				wait = 0.35f;
 
 			} else if ("zap".equals(type)) {
-				showZap(e.getString("c"), e.getInt("p"));
-				wait = 0.35f;
+				//the bolt, beam or cone is in the recorded effects
+
+			} else if ("self".equals(type)) {
+				//the mover's own buffs changed mid-turn (shield up, invisible...)
+				DuelSync.applyBuffsToPuppet(mover, e.getBundleArray("b"));
 
 			} else if ("buff".equals(type)) {
-				int t = e.getInt("t");
-				if (t == DuelGame.myId()) {
-					DuelSync.applyInflictedToMe(e.getBundle("b"));
+				Char t = DuelFx.charFrom(e);
+				Bundle b = e.getBundle("b");
+				if (t == null) return;
+				if (t == me) {
+					DuelSync.applyInflictedToMe(b);
+				} else if (t instanceof DuelOpponent) {
+					DuelGame.Player p = DuelGame.player(((DuelOpponent) t).ownerId());
+					if (p != null && p.alive) DuelSync.applyInflictedToPuppet((DuelOpponent) t, b);
+				} else if (t.duelOwner >= 0) {
+					DuelSync.applyInflictedToCopy(t, b);
 				} else {
-					DuelGame.Player p = DuelGame.player(t);
-					if (p != null && p.puppet != null && p.alive) DuelSync.applyInflictedToPuppet(p.puppet, e.getBundle("b"));
+					DuelSync.applyInflictedToMine(t, b);
 				}
-				wait = 0.1f;
+
+			} else if ("mmove".equals(type) || "mspawn".equals(type) || "mgone".equals(type) || "mdmg".equals(type)) {
+				DuelMirror.play(from, e);
 			}
 		}
 
@@ -274,53 +292,20 @@ public class DuelController extends Actor {
 			}
 		}
 
-		/** Another player's thrown item flying to where it lands (and breaking, for potions). */
+		/** Another player's thrown item flying to where it lands (its sound and splash are recorded effects). */
 		private void showThrow(String className, final int cell) {
 			if (mover == null || mover.sprite == null || mover.sprite.parent == null) return;
 			final Item item = itemFor(className);
 			if (item == null) return;
-			mover.sprite.zap(cell);
-			((MissileSprite) mover.sprite.parent.recycle(MissileSprite.class)).reset(mover.sprite, cell, item, new Callback() {
-				@Override
-				public void call() {
-					if (item instanceof Potion && cell >= 0 && cell < Dungeon.level.length() && Dungeon.level.heroFOV[cell]) {
-						Sample.INSTANCE.play(Assets.Sounds.SHATTER);
-						Splash.at(cell, ((Potion) item).duelSplashColor(), 5);
-					}
-				}
-			});
-		}
-
-		/** Another player's wand bolt, using that wand's own effect. */
-		private void showZap(String className, int cell) {
-			if (mover == null || mover.sprite == null || mover.sprite.parent == null) return;
-			Item item = itemFor(className);
-			if (!(item instanceof Wand)) return;
-			DuelGame.Player owner = DuelGame.player(from);
-			Hero stand = owner != null ? owner.ghost : null;
-			if (stand == null) return;
-			//the wand effects draw from "the current user": stand the owner's hero in for the figure
-			stand.pos = mover.pos;
-			stand.sprite = mover.sprite;
-			Hero saved = Item.duelSetUser(stand);
-			try {
-				mover.sprite.zap(cell);
-				Wand w = (Wand) item;
-				w.duelFx(new Ballistica(mover.pos, cell, w.collisionProperties(cell)));
-			} catch (Exception ex) {
-				DuelTestDriver.log("couldn't show zap: " + ex);
-			} finally {
-				Item.duelSetUser(saved);
-				stand.sprite = null;
-			}
+			((MissileSprite) mover.sprite.parent.recycle(MissileSprite.class)).reset(mover.sprite, cell, item, null);
 		}
 
 		/** Final position/health for the player who just moved, straight from their phone, plus the arena and their buffs. */
 		private void finish() {
-			//the arena as the mover left it: fire, gas, plants, items, terrain
+			//the arena as the mover left it: fire, gas, plants, items, terrain, their creatures
 			if (msg.contains("world")) {
 				try {
-					DuelSync.applyWorld(msg.getBundle("world"));
+					DuelSync.applyWorld(msg.getBundle("world"), from);
 				} catch (Exception e) {
 					DuelTestDriver.log("ERROR applying arena: " + e);
 				}

@@ -217,6 +217,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 	
 	public void move( int from, int to ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelMirror.mineMoved( ch, to );
 		turnTo( from , to );
 
 		play( run );
@@ -258,6 +259,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 	
 	public synchronized void attack( int cell, Callback callback ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.anim( ch, "attack", cell );
 		animCallback = callback;
 		turnTo( ch.pos, cell );
 		play( attack );
@@ -268,6 +270,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 	
 	public synchronized void operate( int cell, Callback callback ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.anim( ch, "operate", cell );
 		animCallback = callback;
 		turnTo( ch.pos, cell );
 		play( operate );
@@ -278,11 +281,28 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 	
 	public synchronized void zap( int cell, Callback callback ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.anim( ch, "zap", cell );
 		animCallback = callback;
 		turnTo( ch.pos, cell );
 		play( zap );
 	}
 	
+	//SPD Duel: plays an animation for show only (another phone already did the real thing)
+	public synchronized void duelShow( String kind, int cell ) {
+		Animation a = "attack".equals( kind ) ? attack
+				: "zap".equals( kind ) ? zap
+				: "operate".equals( kind ) ? operate : null;
+		if (a == null || ch == null) return;
+		animCallback = new Callback() {
+			@Override
+			public void call() {
+				idle();
+			}
+		};
+		turnTo( ch.pos, cell );
+		play( a );
+	}
+
 	public void turnTo( int from, int to ) {
 		int fx = from % Dungeon.level.width();
 		int tx = to % Dungeon.level.width();
@@ -299,6 +319,7 @@ public class CharSprite extends MovieClip implements Tweener.Listener, MovieClip
 	}
 
 	public void jump( int from, int to, float height, float duration,  Callback callback ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.jump( ch, from, to, height, duration );
 		jumpCallback = callback;
 
 		jumpTweener = new JumpTweener( this, worldToCamera( to ), height, duration );

@@ -51,9 +51,14 @@ public class Flare extends Visual {
 	
 	private int nRays;
 	
+	//SPD Duel: what's needed to draw the same flare on another phone
+	private float duelRadius;
+	private int duelColor = 0xFFFFFF;
+
 	public Flare( int nRays, float radius ) {
 		
 		super( 0, 0, 0, 0 );
+		duelRadius = radius;
 
 		int gradient[] = {0xFFFFFFFF, 0xBBFFFFFF, 0x88FFFFFF, 0x00FFFF, 0x00FFFFFF};
 		texture = TextureCache.createGradient( gradient );
@@ -106,6 +111,7 @@ public class Flare extends Visual {
 	
 	public Flare color( int color, boolean lightMode ) {
 		this.lightMode = lightMode;
+		duelColor = color;
 		hardlight( color );
 		
 		return this;
@@ -121,6 +127,7 @@ public class Flare extends Visual {
 		
 		lifespan = this.duration = duration;
 		if (lifespan > 0) scale.set( 0 );
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.flare( nRays, duelRadius, duelColor, lightMode, x, y, duration, angularSpeed );
 		
 		return this;
 	}
@@ -131,6 +138,7 @@ public class Flare extends Visual {
 
 		lifespan = this.duration = duration;
 		if (lifespan > 0) scale.set( 0 );
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.flare( nRays, duelRadius, duelColor, lightMode, x, y, duration, angularSpeed );
 
 		return this;
 	}

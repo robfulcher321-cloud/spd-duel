@@ -1224,6 +1224,11 @@ public class GameScene extends PixelScene {
 		}
 	}
 	
+	//SPD Duel: the layer other players' effects are drawn on
+	public static Group duelFxLayer() {
+		return scene != null ? scene.effects : null;
+	}
+
 	public static void effect( Visual effect ) {
 		if (scene != null) scene.effects.add( effect );
 	}
@@ -1555,6 +1560,7 @@ public class GameScene extends PixelScene {
 	}
 
 	public static void flash( int color, boolean lightmode ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.flash( color, lightmode );
 		if (scene != null) {
 			//don't want to do this on the actor thread
 			ShatteredPixelDungeon.runOnRenderThread(new Callback() {

@@ -147,6 +147,34 @@ public class DuelSync {
 		}
 	}
 
+	/** Another player inflicted this on one of my creatures: it really happens to it. */
+	static void applyInflictedToMine(Char c, Bundle w) {
+		Buff b = unpackBuff(w);
+		if (b == null || c == null || !c.isAlive()) return;
+		try {
+			Buff existing = c.buff(b.getClass());
+			if (existing != null) existing.detach();
+			if (b.attachTo(c)) b.duelSetCooldown(w.getFloat("dur"));
+		} catch (Exception e) {
+			DuelTestDriver.log("couldn't apply " + b.getClass().getSimpleName() + " to my creature: " + e);
+		}
+	}
+
+	/** Another player inflicted this on a copy of someone else's creature: show it. */
+	static void applyInflictedToCopy(Char c, Bundle w) {
+		Buff b = unpackBuff(w);
+		if (b == null || c == null) return;
+		DuelMirror.applying = true;
+		try {
+			Buff existing = c.buff(b.getClass());
+			if (existing != null) existing.detach();
+			b.attachTo(c);
+		} catch (Exception ignored) {
+		} finally {
+			DuelMirror.applying = false;
+		}
+	}
+
 	/** Another player inflicted this on someone else's figure: show it until that player's next turn. */
 	static void applyInflictedToPuppet(DuelOpponent puppet, Bundle w) {
 		if (puppet == null) return;
@@ -190,10 +218,15 @@ public class DuelSync {
 		w.put("plants", plants.toArray(new Bundle[0]));
 
 		w.put("map", level.map.clone());
+		try {
+			w.put("mobs", DuelMirror.myMobs());
+		} catch (Exception e) {
+			DuelTestDriver.log("couldn't pack my creatures: " + e);
+		}
 		return w;
 	}
 
-	static void applyWorld(Bundle w) {
+	static void applyWorld(Bundle w, int from) {
 		if (w == null || w.isNull()) return;
 		Level level = Dungeon.level;
 		try {
@@ -208,6 +241,9 @@ public class DuelSync {
 		try {
 			applyPlants(level, w.getBundleArray("plants"));
 		} catch (Exception e) { DuelTestDriver.log("plant sync failed: " + e); }
+		try {
+			if (w.contains("mobs")) DuelMirror.reconcile(from, w.getBundleArray("mobs"));
+		} catch (Exception e) { DuelTestDriver.log("creature sync failed: " + e); }
 
 		level.buildFlagMaps();
 		GameScene.updateMap();

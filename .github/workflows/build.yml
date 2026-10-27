@@ -52,14 +52,14 @@ jobs:
           ./gradlew --no-daemon -q desktop:release
           JAR=$(ls desktop/build/libs/*.jar | head -1)
           run_match () {
-            NAME=$1; PLAYERS=$2; MODE=$3
+            NAME=$1; PLAYERS=$2; MODE=$3; DISCOVER=$4
             echo "=== match $NAME: $PLAYERS players, $MODE"
             SPD_DUELTEST=host SPD_DUELPLAYERS=$PLAYERS SPD_DUELMODE=$MODE XDG_DATA_HOME=/tmp/${NAME}_h \
               timeout 360 xvfb-run -n 91 -s "-screen 0 1024x768x24" java -jar "$JAR" > ${NAME}_host.log 2>&1 &
             PIDS="$!"
             for SEAT in $(seq 1 $((PLAYERS-1))); do
               sleep 1
-              SPD_DUELTEST=join SPD_DUELSEAT=$SEAT XDG_DATA_HOME=/tmp/${NAME}_j$SEAT \
+              SPD_DUELTEST=join SPD_DUELSEAT=$SEAT SPD_DUELDISCOVER=$DISCOVER XDG_DATA_HOME=/tmp/${NAME}_j$SEAT \
                 timeout 360 xvfb-run -n $((91+SEAT)) -s "-screen 0 1024x768x24" java -jar "$JAR" > ${NAME}_join$SEAT.log 2>&1 &
               PIDS="$PIDS $!"
             done
@@ -70,7 +70,7 @@ jobs:
           }
           R=0
           run_match ffa3 3 ffa || R=1
-          run_match team3 3 2v1 || R=1
+          run_match team3 3 2v1 probe || R=1
           exit $R
 
       - name: Publish build log to ci-log branch

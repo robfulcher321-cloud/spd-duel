@@ -70,6 +70,15 @@ public class Lightning extends Group {
 		this.callback = callback;
 		
 		life = DURATION;
+
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.recording()) {
+			float[] pts = new float[arcs.size() * 4];
+			int i = 0;
+			for (Arc a : arcs) {
+				pts[i++] = a.start.x; pts[i++] = a.start.y; pts[i++] = a.end.x; pts[i++] = a.end.y;
+			}
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.lightning( pts );
+		}
 	}
 	
 	private static final double A = 180 / Math.PI;

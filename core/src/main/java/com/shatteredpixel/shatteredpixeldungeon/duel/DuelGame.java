@@ -610,6 +610,8 @@ public class DuelGame {
 		DuelTestDriver.progress("match starting: " + roster.size() + " players, mode " + (mode == MODE_TEAMS ? "teams" : "ffa") + ", I am " + myId);
 
 		Mob.clearHeldAllies();
+		DuelMirror.reset();
+		DuelFx.install();
 		GameLog.wipe();
 		Dungeon.droppedItems = new SparseArray<>();
 		InterlevelScene.mode = InterlevelScene.Mode.NONE;
@@ -777,11 +779,65 @@ public class DuelGame {
 		for (Player p : players()) {
 			if (p.puppet != null) lastPuppetPos.put(p.id, p.puppet.pos);
 		}
+		DuelMirror.beginRecording();
+		lastBuffSig = Dungeon.hero != null ? buffSignature(Dungeon.hero) : "";
+		synchronized (events) {
+			clock = 0;
+			lastStamp = System.nanoTime();
+		}
 	}
+
+	//when each event happened, so other phones play the turn back at the same pace
+	//(gaps longer than a moment, like me deciding what to do, are cut short)
+	private static float clock = 0;
+	private static long lastStamp = 0;
+	private static final float MAX_GAP = 0.6f;
 
 	private static void addEvent(Bundle e) {
 		synchronized (events) {
+			long now = System.nanoTime();
+			float gap = (now - lastStamp) / 1e9f;
+			lastStamp = now;
+			clock += Math.max(0, Math.min(gap, MAX_GAP));
+			e.put("at", clock);
 			events.add(e);
+		}
+	}
+
+	/** Effects, my creatures' doings: only while it's my turn. */
+	static boolean recordingFx() {
+		return active && myTurn && !over;
+	}
+
+	static void addFxEvent(Bundle e) {
+		if (!recordingFx()) return;
+		addEvent(e);
+	}
+
+	private static String lastBuffSig = "";
+
+	private static String buffSignature(Hero h) {
+		StringBuilder sb = new StringBuilder();
+		for (com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff b : h.buffs()) {
+			if (DuelSync.shareable(b)) sb.append(b.getClass().getName()).append(';');
+		}
+		return sb.toString();
+	}
+
+	/** My hero's buffs changed mid-turn (a shield went up, I turned invisible...): show it now. */
+	private static void sampleMyBuffs() {
+		Hero me = Dungeon.hero;
+		if (me == null) return;
+		String sig = buffSignature(me);
+		if (sig.equals(lastBuffSig)) return;
+		lastBuffSig = sig;
+		try {
+			Bundle e = new Bundle();
+			e.put("e", "self");
+			e.put("b", DuelSync.myBuffs(me));
+			addEvent(e);
+		} catch (Exception ex) {
+			DuelTestDriver.log("couldn't share my buffs: " + ex);
 		}
 	}
 
@@ -803,6 +859,10 @@ public class DuelGame {
 			lastPuppetPos.put(p.id, p.puppet.pos);
 		}
 		flushInflicted();
+		if (recordingFx()) {
+			sampleMyBuffs();
+			DuelMirror.sampleMine();
+		}
 		Hero me = Dungeon.hero;
 		if (me != null && me.pos != lastMyPos) {
 			Bundle e = new Bundle();
@@ -821,11 +881,6 @@ public class DuelGame {
 		e.put("e", "swing");
 		e.put("t", target);
 		e.put("h", hit);
-		Player tp = player(target);
-		if (Dungeon.hero != null && tp != null && tp.puppet != null
-				&& !Dungeon.level.adjacent(Dungeon.hero.pos, tp.puppet.pos)) {
-			e.put("r", true); //thrown or shot: the missile is shown by the throw event
-		}
 		addEvent(e);
 	}
 
@@ -861,9 +916,9 @@ public class DuelGame {
 
 	private static final ArrayList<Object[]> inflicted = new ArrayList<>();
 
-	/** Something I did put a buff/debuff on someone's figure. It's sent once its duration is set. */
-	static void buffInflicted(int target, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff b) {
-		if (!active || !myTurn || over || target < 0) return;
+	/** Something I did put a buff/debuff on another player's hero or creature. Sent once its duration is set. */
+	static void buffInflicted(com.shatteredpixel.shatteredpixeldungeon.actors.Char target, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff b) {
+		if (!active || !myTurn || over || target == null) return;
 		synchronized (inflicted) {
 			inflicted.add(new Object[]{target, b});
 		}
@@ -883,7 +938,7 @@ public class DuelGame {
 			try {
 				Bundle e = new Bundle();
 				e.put("e", "buff");
-				e.put("t", (Integer) o[0]);
+				if (!DuelFx.putChar(e, (com.shatteredpixel.shatteredpixeldungeon.actors.Char) o[0], false)) continue;
 				e.put("b", DuelSync.packBuff(b));
 				e.put("n", b.getClass().getSimpleName());
 				addEvent(e);
@@ -895,9 +950,16 @@ public class DuelGame {
 
 	static String describeEvents(Collection<Bundle> evs) {
 		StringBuilder sb = new StringBuilder("[");
+		java.util.TreeMap<String, Integer> fx = new java.util.TreeMap<>();
 		for (Bundle e : evs) {
+			if ("fx".equals(e.getString("e"))) {
+				String k = e.getString("k");
+				fx.put(k, fx.containsKey(k) ? fx.get(k) + 1 : 1);
+				continue;
+			}
 			if (sb.length() > 1) sb.append(", ");
 			sb.append(e.getString("e"));
+			if (e.contains("co")) sb.append(" ").append(e.getInt("co")).append(e.contains("ci") ? "/" + e.getInt("ci") : "");
 			if (e.contains("t")) sb.append(" ").append(e.getInt("t"));
 			if (e.contains("p")) sb.append("@").append(e.getInt("p"));
 			if (e.contains("a")) sb.append(" ").append(e.getInt("a"));
@@ -907,6 +969,7 @@ public class DuelGame {
 				sb.append(" ").append(c.substring(c.lastIndexOf('.') + 1));
 			}
 		}
+		if (!fx.isEmpty()) sb.append(sb.length() > 1 ? ", " : "").append("fx").append(fx);
 		return sb.append("]").toString();
 	}
 
@@ -1018,6 +1081,8 @@ public class DuelGame {
 		controller = null;
 		lobby = null;
 		incoming.clear();
+		DuelFx.uninstall();
+		DuelMirror.reset();
 
 		Thread t = new Thread("Duel leave") {
 			@Override

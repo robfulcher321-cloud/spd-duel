@@ -92,7 +92,26 @@ public class Emitter extends Group {
 		startDelayed( factory, interval, quantity, Random.Float(interval));
 	}
 
+	//SPD Duel: lets a match record particle bursts so other phones can show them too
+	public interface StartHook {
+		void started( Emitter emitter, Factory factory, float interval, int quantity,
+		              float x, float y, float width, float height );
+	}
+	public static volatile StartHook hook;
+
 	public void startDelayed( Factory factory, float interval, int quantity, float delay ) {
+		StartHook h = hook;
+		if (h != null && quantity > 0 && factory != null) {
+			float ex, ey, ew, eh;
+			if (target == null) {
+				ex = x; ey = y; ew = width; eh = height;
+			} else if (fillTarget) {
+				ex = target.x; ey = target.y; ew = target.width(); eh = target.height();
+			} else {
+				ex = target.x + x; ey = target.y + y; ew = width; eh = height;
+			}
+			h.started( this, factory, interval, quantity, ex, ey, ew, eh );
+		}
 		this.factory = factory;
 		this.lightMode = factory.lightMode();
 

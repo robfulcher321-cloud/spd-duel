@@ -297,7 +297,14 @@ public abstract class Actor implements Bundlable {
 					doNext = false;
 					current = null;
 				} else {
-					doNext = acting.act();
+					if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelMirror.frozen( acting )) {
+						//another player's creature (or its buff): it acts on its owner's phone
+						acting.timeToNow();
+						acting.spendConstant( TICK );
+						doNext = true;
+					} else {
+						doNext = acting.act();
+					}
 					if (doNext && (Dungeon.hero == null || !Dungeon.hero.isAlive())) {
 						doNext = false;
 						current = null;

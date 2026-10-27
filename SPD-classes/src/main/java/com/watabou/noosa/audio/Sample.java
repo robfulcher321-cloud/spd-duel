@@ -105,7 +105,15 @@ public enum Sample {
 		return play( id, volume, volume, pitch );
 	}
 	
+	//SPD Duel: lets a match record the sounds of a turn so other phones can play them too
+	public interface PlayHook {
+		void played( Object id, float leftVolume, float rightVolume, float pitch );
+	}
+	public static volatile PlayHook hook;
+
 	public synchronized long play( Object id, float leftVolume, float rightVolume, float pitch ) {
+		PlayHook h = hook;
+		if (h != null) h.played( id, leftVolume, rightVolume, pitch );
 		float volume = Math.max(leftVolume, rightVolume);
 		float pan = rightVolume - leftVolume;
 		if (enabled && ids.containsKey( id )) {

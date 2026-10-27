@@ -135,6 +135,7 @@ public class SpellSprite extends Image {
 	}
 	
 	public static void show( Char ch, int index, float r, float g, float b ) {
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelFx.spell( ch, index, r, g, b );
 		
 		if (!ch.sprite.visible) {
 			return;

@@ -149,7 +149,7 @@ public class DuelOpponent extends Mob {
 		if (!super.add(buff)) return false;
 		//buffs on a figure are for show: they never tick here (the real one ticks on its owner's phone)
 		Actor.remove(buff);
-		if (!applyingSnapshot) DuelGame.buffInflicted(ownerId(), buff);
+		if (!applyingSnapshot && !DuelFx.replaying) DuelGame.buffInflicted(this, buff);
 		return true;
 	}
 

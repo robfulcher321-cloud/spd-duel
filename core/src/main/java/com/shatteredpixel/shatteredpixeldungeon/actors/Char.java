@@ -171,6 +171,10 @@ public abstract class Char extends Actor {
 	
 	public int HT;
 	public int HP;
+
+	//SPD Duel: set on copies of other players' creatures; -1 for everything else
+	public int duelOwner = -1;
+	public int duelOrigId = 0;
 	
 	protected float baseSpeed	= 1;
 	protected PathFinder.Path path;
@@ -244,6 +248,9 @@ public abstract class Char extends Actor {
 	
 	//swaps places by default
 	public boolean interact(Char c){
+
+		//SPD Duel: a teammate's creature can't be swapped with (it would only move on one phone)
+		if (duelOwner >= 0) return true;
 
 		//don't allow char to swap onto hazard unless they're flying
 		//you can swap onto a hazard though, as you're not the one instigating the swap
@@ -833,6 +840,12 @@ public abstract class Char extends Actor {
 			return;
 		}
 
+		if (duelOwner >= 0) {
+			//another player's creature: the real one takes the damage on its owner's phone
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelMirror.damaged( this, dmg, src );
+			return;
+		}
+
 		if(isInvulnerable(src.getClass())){
 			sprite.showStatus(CharSprite.POSITIVE, Messages.get(this, "invulnerable"));
 			return;
@@ -1234,6 +1247,7 @@ public abstract class Char extends Actor {
 
 		buffs.add( buff );
 		if (Actor.chars().contains(this)) Actor.add( buff );
+		if (duelOwner >= 0) com.shatteredpixel.shatteredpixeldungeon.duel.DuelMirror.buffAdded( this, buff );
 
 		if (sprite != null && sprite.alive && buff.announced) {
 			switch (buff.type) {

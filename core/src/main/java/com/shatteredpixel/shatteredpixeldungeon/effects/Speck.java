@@ -535,6 +535,14 @@ public class Speck extends Image {
 		}
 	}
 
+	//SPD Duel: which speck type a factory makes, or -1
+	public static int duelTypeOf( Emitter.Factory f ) {
+		for (int k : factories.keyArray()) {
+			if (factories.get( k ) == f) return k;
+		}
+		return -1;
+	}
+
 	public static Emitter.Factory factory( final int type ) {
 		return factory( type, false );
 	}
