@@ -30,12 +30,15 @@ public class DuelOpponentSprite extends MobSprite {
 	private static final int FRAME_HEIGHT = 15;
 
 	public DuelOpponentSprite() {
+		this(HeroClass.WARRIOR, 0);
+	}
+
+	public DuelOpponentSprite(HeroClass cls, int tier) {
 		super();
 
-		HeroClass cls = DuelGame.opponentClass();
 		texture( cls.spritesheet() );
 
-		TextureFilm film = new TextureFilm( HeroSprite.tiers(), DuelGame.opponentTier(), FRAME_WIDTH, FRAME_HEIGHT );
+		TextureFilm film = new TextureFilm( HeroSprite.tiers(), tier, FRAME_WIDTH, FRAME_HEIGHT );
 
 		idle = new Animation( 1, true );
 		idle.frames( film, 0, 0, 0, 1, 0, 0, 1, 1 );

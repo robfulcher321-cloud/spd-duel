@@ -1,5 +1,5 @@
 /*
- * SPD Duel - a 1v1 PvP mod of Shattered Pixel Dungeon
+ * SPD Duel - a PvP mod of Shattered Pixel Dungeon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,13 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.duel;
 
-import com.badlogic.gdx.Gdx;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
-import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis;
+import com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
@@ -30,10 +33,14 @@ import com.watabou.utils.Callback;
 import com.watabou.utils.PathFinder;
 
 /**
- * Automated two-player duel for GitHub's test machine (SPD_DUELTEST=host or join).
- * Each copy of the game builds a fighter, connects over localhost, and plays by itself:
- * walk towards the opponent, attack when adjacent. Every turn exchange is logged; if no
- * turn goes through for a while, it prints what every thread is doing and quits.
+ * Automated match for GitHub's test machine. Each copy of the game is one player:
+ *   SPD_DUELTEST  = host | join
+ *   SPD_DUELPLAYERS = total players (host waits for this many, default 2)
+ *   SPD_DUELMODE  = ffa | 2v1 (teams: host alone against everyone else)
+ *   SPD_DUELSEAT  = joiner number, used to stagger joining
+ * Players walk to the nearest enemy and attack. The host also knocks its target back a
+ * tile, and one joiner puts its target to sleep/slows/paralyses it, to exercise pushes and
+ * local effects. Every turn is logged; a stall prints what every thread is doing.
  */
 public class DuelTestDriver {
 
@@ -45,13 +52,22 @@ public class DuelTestDriver {
 		}
 	}
 
+	private static String env(String key, String def) {
+		try {
+			String v = System.getenv(key);
+			return v == null ? def : v;
+		} catch (Exception e) {
+			return def;
+		}
+	}
+
 	public static boolean enabled() {
 		return mode() != null;
 	}
 
 	static void log(String s) {
 		if (enabled()) {
-			System.out.println("DUELTEST[" + mode() + "] " + s);
+			System.out.println("DUELTEST[" + mode() + env("SPD_DUELSEAT", "") + "] " + s);
 			System.out.flush();
 		}
 	}
@@ -59,9 +75,9 @@ public class DuelTestDriver {
 	private static boolean started = false;
 	private static volatile long lastProgress = System.currentTimeMillis();
 	private static volatile int actions = 0;
-	private static final int MAX_ACTIONS = 40;
+	private static boolean configured = false;
+	private static final int MAX_ACTIONS = 60;
 
-	/** Something happened in the duel (a turn was sent, received, or my hero acted). */
 	static void progress(String what) {
 		lastProgress = System.currentTimeMillis();
 		log(what);
@@ -71,25 +87,28 @@ public class DuelTestDriver {
 		if (!enabled() || started) return;
 		started = true;
 		final boolean host = "host".equals(mode());
-		log("starting as " + (host ? "host" : "joiner"));
+		final int seat = Integer.parseInt(env("SPD_DUELSEAT", "0"));
+		log("starting as " + (host ? "host" : "joiner " + seat));
 
 		Thread t = new Thread("Duel test driver") {
 			@Override
 			public void run() {
 				try {
-					Thread.sleep(host ? 1000 : 4000); //give the host time to start listening
+					Thread.sleep(host ? 1000 : 3000 + seat * 1500L);
 				} catch (InterruptedException ignored) {}
 
 				Game.runOnRenderThread(new Callback() {
 					@Override
 					public void call() {
+						HeroClass[] classes = {HeroClass.WARRIOR, HeroClass.DUELIST, HeroClass.ROGUE, HeroClass.HUNTRESS};
 						if (host) {
 							DuelGame.prepareEndgameHero(HeroClass.WARRIOR, HeroSubClass.BERSERKER,
 									HeroClass.WARRIOR.armorAbilities()[0], new DuelLoadout());
 						} else {
-							DuelGame.prepareTestHero(HeroClass.WARRIOR, new DuelLoadout());
+							DuelGame.prepareTestHero(classes[seat % classes.length], new DuelLoadout());
 						}
 						DuelGame.LobbyListener l = new DuelGame.LobbyListener() {
+							public void onLobbyChanged() { log("lobby now has " + DuelGame.players().size() + " players"); }
 							public void onStatus(String text) { log("lobby: " + text); }
 							public void onFailed(String reason) { log("lobby FAILED: " + reason); exit(3); }
 						};
@@ -102,7 +121,7 @@ public class DuelTestDriver {
 				long start = System.currentTimeMillis();
 				while (true) {
 					try {
-						Thread.sleep(400);
+						Thread.sleep(300);
 					} catch (InterruptedException e) {
 						return;
 					}
@@ -114,13 +133,14 @@ public class DuelTestDriver {
 					});
 
 					long idle = System.currentTimeMillis() - lastProgress;
-					if (idle > 25000) {
-						log("STALL: nothing happened for 25s");
+					if (idle > 30000) {
+						log("STALL: nothing happened for 30s (current player " + DuelGame.currentPlayer()
+								+ ", my turn " + DuelGame.myTurn() + ")");
 						dumpThreads();
 						exit(2);
 					}
-					if (System.currentTimeMillis() - start > 240000) {
-						log("TIMEOUT after 4 minutes");
+					if (System.currentTimeMillis() - start > 300000) {
+						log("TIMEOUT after 5 minutes");
 						exit(4);
 					}
 				}
@@ -130,68 +150,101 @@ public class DuelTestDriver {
 		t.start();
 	}
 
-	/** Runs on the render thread a few times a second: take my hero's turn if it's waiting for input. */
+	/** Render thread, a few times a second. */
 	private static void step() {
+		//host: when everyone's in, set the teams and start
+		if ("host".equals(mode()) && DuelGame.inLobby() && !configured) {
+			int want = Integer.parseInt(env("SPD_DUELPLAYERS", "2"));
+			if (DuelGame.players().size() >= want) {
+				configured = true;
+				if ("2v1".equals(env("SPD_DUELMODE", "ffa"))) {
+					DuelGame.setMode(DuelGame.MODE_TEAMS);
+					for (DuelGame.Player p : DuelGame.players()) {
+						if (p.id != 0 && p.team == 0) DuelGame.toggleTeam(p.id);
+					}
+				} else {
+					DuelGame.setMode(DuelGame.MODE_FFA);
+				}
+				log("starting match: " + DuelGame.startProblem());
+				DuelGame.startMatch();
+			}
+			return;
+		}
+
 		if (DuelGame.isOver()) {
-			log("RESULT duel over; my HP " + (Dungeon.hero == null ? "?" : Dungeon.hero.HP) + "; actions " + actions);
+			logFinalState();
 			log("PASS");
 			exit(0);
 			return;
 		}
 		if (!(Game.scene() instanceof GameScene) || !DuelGame.active()) return;
 		Hero h = Dungeon.hero;
-		if (h == null || !h.isAlive() || !h.ready || Actor.processing() && !h.ready) return;
+		if (h == null || !h.isAlive() || !h.ready || !DuelGame.myTurn()) return;
 
-		Char opp = null;
-		for (Char c : Actor.chars()) {
-			if (c instanceof DuelOpponent) opp = c;
+		//nearest enemy figure
+		DuelOpponent target = null;
+		int best = Integer.MAX_VALUE;
+		for (DuelGame.Player p : DuelGame.players()) {
+			if (p.puppet == null || !p.alive || !DuelGame.isEnemy(p)) continue;
+			int d = Dungeon.level.distance(h.pos, p.puppet.pos);
+			if (d < best) { best = d; target = p.puppet; }
 		}
-		if (opp == null) return;
+		if (target == null) return;
 
-		int target;
-		if (Dungeon.level.adjacent(h.pos, opp.pos)) {
-			target = opp.pos; //attack
+		//stress: knockback and local status effects
+		if (actions == 3 && "host".equals(mode()) && Dungeon.level.adjacent(h.pos, target.pos)) {
+			int away = target.pos + (target.pos - h.pos);
+			int to = DuelController.EventPlayer.freeCellNear(away, target);
+			if (to >= 0 && to != target.pos) {
+				log("STRESS: knocking " + target.name() + " back from " + target.pos + " to " + to);
+				DuelController.EventPlayer.slide(target, to);
+			}
+		}
+		if (actions == 4 && "1".equals(env("SPD_DUELSEAT", ""))) {
+			log("STRESS: sleep/slow/chill/paralysis on " + target.name());
+			Buff.affect(target, MagicalSleep.class);
+			Buff.prolong(target, Slow.class, 10f);
+			Buff.prolong(target, Chill.class, 10f);
+			Buff.prolong(target, Paralysis.class, 5f);
+		}
+
+		int cell;
+		if (Dungeon.level.adjacent(h.pos, target.pos)) {
+			cell = target.pos;
 		} else {
-			//step to the free neighbouring cell closest to the opponent
-			target = -1;
-			int best = Integer.MAX_VALUE;
+			cell = -1;
+			int bd = Integer.MAX_VALUE;
 			for (int n : PathFinder.NEIGHBOURS8) {
 				int c = h.pos + n;
 				if (c < 0 || c >= Dungeon.level.length() || !Dungeon.level.passable[c] || Actor.findChar(c) != null) continue;
-				int d = Dungeon.level.distance(c, opp.pos);
-				if (d < best) { best = d; target = c; }
+				int d = Dungeon.level.distance(c, target.pos);
+				if (d < bd) { bd = d; cell = c; }
 			}
-			if (target == -1) target = h.pos; //nowhere to go: wait
-		}
-
-		//stress test: hit the opponent figure (and my hero) with the local effects that broke sync on phones
-		if (actions == 2 && "host".equals(mode())) {
-			log("STRESS: putting the opponent figure to sleep, slowing, chilling and paralysing it");
-			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.affect(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep.class);
-			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow.class, 10f);
-			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill.class, 10f);
-			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis.class, 5f);
-		}
-		if (actions == 4 && "join".equals(mode())) {
-			log("STRESS: giving my hero a time bubble (time stops for 6 turns)");
-			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.affect(h, com.shatteredpixel.shatteredpixeldungeon.plants.Swiftthistle.TimeBubble.class).reset();
+			if (cell == -1) cell = h.pos;
 		}
 
 		actions++;
-		progress("my action " + actions + ": " + (target == opp.pos ? "attack" : "move")
-				+ " | me HP " + h.HP + "/" + h.HT + " at " + h.pos
-				+ " | them HP " + opp.HP + "/" + opp.HT + " at " + opp.pos
-				+ " | time " + Actor.now());
-
-		if (h.handle(target)) {
-			h.next();
-		}
+		progress("my action " + actions + ": " + (cell == target.pos ? "attack " + target.name() : "move")
+				+ " | me HP " + h.HP + "/" + h.HT + " at " + h.pos + " | target HP " + target.HP + " at " + target.pos);
+		if (h.handle(cell)) h.next();
 
 		if (actions >= MAX_ACTIONS) {
-			log("RESULT reached " + MAX_ACTIONS + " actions; my HP " + h.HP + ", them " + opp.HP);
+			log("RESULT reached " + MAX_ACTIONS + " actions without a winner");
+			logFinalState();
 			log("PASS");
 			exit(0);
 		}
+	}
+
+	private static void logFinalState() {
+		Hero h = Dungeon.hero;
+		StringBuilder sb = new StringBuilder("FINAL me(" + DuelGame.myId() + ") ");
+		sb.append(h == null ? "?" : ("pos " + h.pos + " hp " + h.HP + (h.isAlive() ? "" : " DEAD")));
+		for (DuelGame.Player p : DuelGame.players()) {
+			if (p.puppet == null) continue;
+			sb.append(" | p").append(p.id).append(" pos ").append(p.puppet.pos).append(p.alive ? "" : " OUT");
+		}
+		log(sb.toString());
 	}
 
 	private static void dumpThreads() {
@@ -203,11 +256,16 @@ public class DuelTestDriver {
 		System.out.flush();
 	}
 
+	private static boolean exiting = false;
+
 	private static void exit(final int code) {
+		if (exiting) return;
+		exiting = true;
 		new Thread() {
 			@Override
 			public void run() {
-				try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+				//linger so the last messages reach everyone before this copy disconnects
+				try { Thread.sleep(4000); } catch (InterruptedException ignored) {}
 				System.exit(code);
 			}
 		}.start();

@@ -1,5 +1,5 @@
 /*
- * SPD Duel - a 1v1 PvP mod of Shattered Pixel Dungeon
+ * SPD Duel - a PvP mod of Shattered Pixel Dungeon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,88 +19,133 @@ package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
+import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Talent;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
+import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.items.BrokenSeal;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.ClassArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.MailArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.armor.PlateArmor;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.CloakOfShadows;
 import com.shatteredpixel.shatteredpixeldungeon.items.artifacts.HolyTome;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroSubClass;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.abilities.ArmorAbility;
 import com.shatteredpixel.shatteredpixeldungeon.items.potions.PotionOfHealing;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Messages;
-import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
-import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
-import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
-import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.GameLog;
+import com.shatteredpixel.shatteredpixeldungeon.utils.DungeonSeed;
+import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
 import com.watabou.noosa.Game;
 import com.watabou.utils.Bundle;
 import com.watabou.utils.Callback;
 import com.watabou.utils.SparseArray;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Everything about the duel that isn't networking or drawing.
+ * Everything about a match that isn't networking or drawing.
  *
- * How a fight stays in sync: each phone is in charge of its own hero. When it's your
- * opponent's turn, your phone sends a summary of what your hero just did (where you are,
- * your HP, how much damage you dealt and whether you swung), then waits for their summary
- * and replays it: their figure walks, swings, and you take the damage their phone rolled.
- * The host always moves first, then turns alternate.
+ * How a match stays in sync: each phone is in charge of its own hero. Turns rotate through
+ * the players (host first). On my turn my hero acts for one tick of game time, while my
+ * phone records what happened as a list of events (each step, swing, hit and push). The
+ * events go to every other phone, which plays them back on my figure. Damage I deal is
+ * applied to the real hero it hit on that player's phone; pushes move the real hero too.
+ * A player whose hero dies tells everyone; the last team standing wins.
  */
 public class DuelGame {
 
-	//bump this whenever the message format changes, so mismatched builds refuse to fight
-	public static final int PROTOCOL = 1;
+	//bump this whenever the message format changes, so mismatched builds refuse to play
+	public static final int PROTOCOL = 2;
+	public static final int MAX_PLAYERS = 4;
 
-	private static volatile boolean active = false;   //a fight is on screen
+	public static final int MODE_FFA = 0;
+	public static final int MODE_TEAMS = 1;
+
+	// ------------------------------------------------------------------ players
+
+	public static class Player {
+		public int id;
+		public String name;
+		public HeroClass cls = HeroClass.WARRIOR;
+		public int tier;
+		public int lvl;
+		public int team;
+		public Bundle hero;          //only kept by the host until the match starts
+		public volatile boolean alive = true;
+		public DuelOpponent puppet;  //this player's figure on my screen (null for me)
+		public Hero ghost;           //their hero, for their defence stats
+
+		Bundle toBundle(boolean withHero) {
+			Bundle b = new Bundle();
+			b.put("id", id);
+			b.put("name", name);
+			b.put("cls", cls);
+			b.put("tier", tier);
+			b.put("lvl", lvl);
+			b.put("team", team);
+			if (withHero && hero != null) b.put("hero", hero);
+			return b;
+		}
+
+		static Player fromBundle(Bundle b) {
+			Player p = new Player();
+			p.id = b.getInt("id");
+			p.name = b.getString("name");
+			p.cls = b.getEnum("cls", HeroClass.class);
+			p.tier = b.getInt("tier");
+			p.lvl = b.getInt("lvl");
+			p.team = b.getInt("team");
+			if (b.contains("hero")) p.hero = b.getBundle("hero");
+			return p;
+		}
+	}
+
+	private static final ArrayList<Player> players = new ArrayList<>();
+	private static volatile int myId = 0;
+	private static volatile int mode = MODE_FFA;
+
+	private static volatile boolean active = false;   //a match is on screen
 	private static volatile boolean inLobby = false;  //hosting/joining, not fighting yet
 	private static volatile boolean over = false;
 	private static boolean host;
 
 	private static Bundle myHello;
-	private static Bundle theirHello;
-	private static Hero ghost; //the opponent's hero, used only for their defence stats
-	private static HeroClass oppClass = HeroClass.WARRIOR;
-	private static int oppTier = 0;
-	private static String oppName = "Opponent";
-
-	private static DuelOpponent opponent;
-	private static final ConcurrentLinkedQueue<Bundle> incomingTurns = new ConcurrentLinkedQueue<>();
-
-	//what my hero did since I last reported
-	private static int dealt = 0;
-	private static boolean attacked = false;
-	private static boolean hitSomething = false;
-
-	public interface LobbyListener {
-		void onStatus(String text);
-		void onFailed(String reason);
-	}
-	private static LobbyListener lobby;
+	private static DuelController controller;
+	private static final ConcurrentLinkedQueue<Bundle> incoming = new ConcurrentLinkedQueue<>();
 
 	public static boolean active() { return active; }
+	public static boolean inLobby() { return inLobby; }
 	public static boolean isHost() { return host; }
 	public static boolean isOver() { return over; }
-	public static Hero ghost() { return ghost; }
-	public static HeroClass opponentClass() { return oppClass; }
-	public static int opponentTier() { return oppTier; }
-	public static String opponentName() { return oppName; }
+	public static int myId() { return myId; }
+	public static int mode() { return mode; }
 
-	// ------------------------------------------------------------------ lobby
+	public static synchronized ArrayList<Player> players() {
+		return new ArrayList<>(players);
+	}
+
+	public static synchronized Player player(int id) {
+		for (Player p : players) if (p.id == id) return p;
+		return null;
+	}
+
+	public static Player me() {
+		return player(myId);
+	}
+
+	// ------------------------------------------------------------------ building my fighter
 
 	/**
 	 * Loads a saved run's hero into memory to fight with. Only reads the save file;
-	 * nothing about the duel is ever written back to it.
+	 * nothing about the match is ever written back to it.
 	 */
 	public static void prepareHero(int slot) throws Exception {
 		Dungeon.loadGame(slot, true);
@@ -230,36 +275,67 @@ public class DuelGame {
 		myHello.put("hero", h);
 		myHello.put("cls", h.heroClass);
 		myHello.put("tier", h.tier());
+		myHello.put("lvl", h.lvl);
 		myHello.put("name", name);
 	}
 
 	public static String myLabel() {
 		Hero h = Dungeon.hero;
 		if (h == null) return "Hero";
-		return h.heroClass.title() + " lvl " + h.lvl;
+		return Messages.capitalize(h.heroClass.title()) + " lvl " + h.lvl;
+	}
+
+	// ------------------------------------------------------------------ lobby
+
+	public interface LobbyListener {
+		/** The player list or match settings changed. */
+		void onLobbyChanged();
+		void onStatus(String text);
+		void onFailed(String reason);
+	}
+
+	private static volatile LobbyListener lobby;
+
+	public static void setLobbyListener(LobbyListener l) {
+		lobby = l;
+	}
+
+	private static void resetState() {
+		synchronized (DuelGame.class) {
+			players.clear();
+		}
+		incoming.clear();
+		active = false;
+		over = false;
+		controller = null;
+		myId = 0;
+		mode = MODE_FFA;
+		current = 0;
+		myTurn = false;
+		events.clear();
 	}
 
 	public static void hostLobby(LobbyListener l) {
+		resetState();
 		host = true;
-		startLobby(l);
-		DuelNet.host(myLabel(), netListener);
+		inLobby = true;
+		lobby = l;
+
+		Player me = playerFromHello(0, myHello);
+		me.team = 0;
+		synchronized (DuelGame.class) {
+			players.add(me);
+		}
+		DuelNet.host(beaconText(), netListener);
+		lobbyChanged();
 	}
 
 	public static void joinLobby(String ip, LobbyListener l) {
+		resetState();
 		host = false;
-		startLobby(l);
-		DuelNet.join(ip, netListener);
-	}
-
-	private static void startLobby(LobbyListener l) {
-		lobby = l;
 		inLobby = true;
-		active = false;
-		over = false;
-		theirHello = null;
-		ghost = null;
-		incomingTurns.clear();
-		resetTurnTracking();
+		lobby = l;
+		DuelNet.join(ip, netListener);
 	}
 
 	public static void cancelLobby() {
@@ -268,66 +344,93 @@ public class DuelGame {
 		DuelNet.close();
 	}
 
-	private static final DuelNet.Listener netListener = new DuelNet.Listener() {
-		@Override
-		public void onConnected() {
-			status("Connected! Swapping heroes...");
-			DuelNet.send(myHello);
-		}
+	private static String beaconText() {
+		return myLabel() + "  [" + players().size() + "/" + MAX_PLAYERS + "]";
+	}
 
-		@Override
-		public void onMessage(final Bundle msg) {
-			String type = msg.getString("type");
-			if ("hello".equals(type)) {
-				if (msg.getInt("protocol") != PROTOCOL) {
-					lobbyFail("Your opponent has a different version of SPD Duel. Both phones need the latest build: " +
-							"restart the app on the older phone and it will offer the update.");
-					DuelNet.close();
-					return;
-				}
-				theirHello = msg;
-				Game.runOnRenderThread(new Callback() {
-					@Override
-					public void call() {
-						startFight();
-					}
-				});
-			} else if ("turn".equals(type)) {
-				DuelTestDriver.progress("RECEIVED turn " + msg.getInt("seq") + ": pos " + msg.getInt("pos")
-						+ " hp " + msg.getInt("hp") + " dmg " + msg.getInt("dmg"));
-				incomingTurns.add(msg);
-				wakeOpponent();
-			} else if ("defeat".equals(type)) {
-				Game.runOnRenderThread(new Callback() {
-					@Override
-					public void call() {
-						onOpponentDefeated(false);
-					}
-				});
-			} else if ("leave".equals(type)) {
-				Game.runOnRenderThread(new Callback() {
-					@Override
-					public void call() {
-						onOpponentDefeated(true);
-					}
-				});
-			}
-		}
+	private static Player playerFromHello(int id, Bundle hello) {
+		Player p = new Player();
+		p.id = id;
+		p.name = hello.getString("name");
+		p.cls = hello.getEnum("cls", HeroClass.class);
+		p.tier = hello.getInt("tier");
+		p.lvl = hello.getInt("lvl");
+		p.hero = hello.getBundle("hero");
+		return p;
+	}
 
-		@Override
-		public void onDisconnected(final String reason) {
-			if (inLobby && !active) {
-				lobbyFail(reason);
-			} else if (active && !over) {
-				Game.runOnRenderThread(new Callback() {
-					@Override
-					public void call() {
-						onOpponentDefeated(true);
-					}
-				});
+	// ---------------- host-only lobby controls
+
+	public static void setMode(int m) {
+		if (!host || !inLobby) return;
+		mode = m;
+		broadcastLobby();
+	}
+
+	/** Teams mode: swap a player between team A and team B. */
+	public static void toggleTeam(int id) {
+		if (!host || !inLobby) return;
+		Player p = player(id);
+		if (p == null) return;
+		p.team = p.team == 0 ? 1 : 0;
+		broadcastLobby();
+	}
+
+	/** Empty string if the host can start; otherwise why not. */
+	public static String startProblem() {
+		ArrayList<Player> ps = players();
+		if (ps.size() < 2) return "Waiting for at least one more player.";
+		if (mode == MODE_TEAMS) {
+			boolean a = false, b = false;
+			for (Player p : ps) {
+				if (p.team == 0) a = true; else b = true;
 			}
+			if (!a || !b) return "Both teams need at least one player.";
 		}
-	};
+		return "";
+	}
+
+	public static void startMatch() {
+		if (!host || !inLobby || !startProblem().isEmpty()) return;
+		DuelNet.stopAccepting();
+
+		Bundle start = new Bundle();
+		start.put("type", "start");
+		start.put("mode", mode);
+		ArrayList<Bundle> list = new ArrayList<>();
+		for (Player p : players()) list.add(p.toBundle(true));
+		start.put("players", list.toArray(new Bundle[0]));
+		DuelNet.broadcast(start);
+		beginMatch(start);
+	}
+
+	private static void broadcastLobby() {
+		ArrayList<Player> ps = players();
+		ArrayList<Bundle> list = new ArrayList<>();
+		for (Player p : ps) list.add(p.toBundle(false));
+		for (Player p : ps) {
+			if (p.id == myId) continue;
+			Bundle b = new Bundle();
+			b.put("type", "lobby");
+			b.put("mode", mode);
+			b.put("you", p.id);
+			b.put("players", list.toArray(new Bundle[0]));
+			DuelNet.send(p.id, b);
+		}
+		DuelNet.setBeaconLabel(beaconText());
+		lobbyChanged();
+	}
+
+	private static void lobbyChanged() {
+		final LobbyListener l = lobby;
+		if (l == null) return;
+		Game.runOnRenderThread(new Callback() {
+			@Override
+			public void call() {
+				l.onLobbyChanged();
+			}
+		});
+	}
 
 	private static void status(final String text) {
 		final LobbyListener l = lobby;
@@ -343,6 +446,8 @@ public class DuelGame {
 	private static void lobbyFail(final String reason) {
 		final LobbyListener l = lobby;
 		inLobby = false;
+		lobby = null;
+		DuelNet.close();
 		if (l == null) return;
 		Game.runOnRenderThread(new Callback() {
 			@Override
@@ -352,35 +457,154 @@ public class DuelGame {
 		});
 	}
 
-	// ------------------------------------------------------------------ starting the fight
+	// ------------------------------------------------------------------ network messages
 
-	private static void startFight() {
-		if (!inLobby || theirHello == null) return;
-
-		try {
-			oppClass = theirHello.getEnum("cls", HeroClass.class);
-			oppTier = theirHello.getInt("tier");
-			oppName = theirHello.getString("name");
-			ghost = (Hero) theirHello.get("hero");
-		} catch (Exception e) {
-			ShatteredPixelDungeon.reportException(e);
-			ghost = null;
+	private static final DuelNet.Listener netListener = new DuelNet.Listener() {
+		@Override
+		public void onConnected(int peer) {
+			if (!host) {
+				status("Connected! Joining the lobby...");
+				DuelNet.send(DuelNet.HOST_PEER, myHello);
+			}
 		}
-		if (ghost == null) {
-			lobbyFail("Couldn't read your opponent's hero.");
-			DuelNet.close();
-			return;
+
+		@Override
+		public void onMessage(int peer, Bundle msg) {
+			try {
+				handle(peer, msg);
+			} catch (Exception e) {
+				ShatteredPixelDungeon.reportException(e);
+				DuelTestDriver.log("ERROR handling message: " + e);
+			}
+		}
+
+		@Override
+		public void onDisconnected(int peer, String reason) {
+			if (host) {
+				if (peer == DuelNet.HOST_PEER) {
+					//couldn't open the lobby at all
+					lobbyFail(reason);
+				} else if (inLobby) {
+					synchronized (DuelGame.class) {
+						players.remove(player(peer));
+					}
+					broadcastLobby();
+				} else if (active && !over) {
+					Bundle left = new Bundle();
+					left.put("type", "left");
+					left.put("who", peer);
+					DuelNet.broadcast(left);
+					incoming.add(left);
+				}
+			} else {
+				if (inLobby) {
+					lobbyFail(reason.startsWith("Couldn't") ? reason : "The host closed the lobby.");
+				} else if (active && !over) {
+					Bundle end = new Bundle();
+					end.put("type", "end");
+					end.put("why", "Lost connection to the host.");
+					incoming.add(end);
+				}
+			}
+		}
+	};
+
+	private static void handle(int peer, Bundle msg) {
+		String type = msg.getString("type");
+
+		if ("hello".equals(type) && host) {
+			if (msg.getInt("protocol") != PROTOCOL) {
+				reject(peer, "Your SPD Duel is a different version from the host's. Restart the app and take the update.");
+				return;
+			}
+			if (!inLobby || players().size() >= MAX_PLAYERS) {
+				reject(peer, inLobby ? "That lobby is full." : "That match has already started.");
+				return;
+			}
+			Player p = playerFromHello(peer, msg);
+			//new players go to whichever team is smaller
+			int a = 0, b = 0;
+			for (Player o : players()) { if (o.team == 0) a++; else b++; }
+			p.team = a <= b ? 0 : 1;
+			synchronized (DuelGame.class) {
+				players.add(p);
+			}
+			DuelTestDriver.log("lobby: player " + peer + " joined (" + p.name + ")");
+			broadcastLobby();
+
+		} else if ("lobby".equals(type) && !host) {
+			mode = msg.getInt("mode");
+			myId = msg.getInt("you");
+			synchronized (DuelGame.class) {
+				players.clear();
+				for (Bundle b : msg.getBundleArray("players")) players.add(Player.fromBundle(b));
+			}
+			lobbyChanged();
+
+		} else if ("reject".equals(type)) {
+			lobbyFail(msg.getString("why"));
+
+		} else if ("start".equals(type) && !host) {
+			final Bundle start = msg;
+			Game.runOnRenderThread(new Callback() {
+				@Override
+				public void call() {
+					beginMatch(start);
+				}
+			});
+
+		} else if ("turn".equals(type) || "dead".equals(type) || "left".equals(type)) {
+			if (host) DuelNet.broadcastExcept(peer, msg); //relay to everyone else
+			DuelTestDriver.progress("RECEIVED " + type + " from " + (msg.contains("from") ? msg.getInt("from") : msg.getInt("who"))
+					+ (msg.contains("seq") ? " seq " + msg.getInt("seq") : ""));
+			incoming.add(msg);
+
+		} else if ("end".equals(type) && !host) {
+			incoming.add(msg);
+		}
+	}
+
+	private static void reject(int peer, String why) {
+		Bundle b = new Bundle();
+		b.put("type", "reject");
+		b.put("why", why);
+		DuelNet.send(peer, b);
+		final int p = peer;
+		new Thread() {
+			@Override
+			public void run() {
+				try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+				DuelNet.kick(p);
+			}
+		}.start();
+	}
+
+	// ------------------------------------------------------------------ starting the match
+
+	private static void beginMatch(Bundle start) {
+		if (!inLobby) return;
+
+		mode = start.getInt("mode");
+		ArrayList<Player> roster = new ArrayList<>();
+		for (Bundle b : start.getBundleArray("players")) roster.add(Player.fromBundle(b));
+
+		for (Player p : roster) {
+			if (p.id == myId) continue;
+			p.ghost = heroFrom(p.hero);
+		}
+		synchronized (DuelGame.class) {
+			players.clear();
+			players.addAll(roster);
 		}
 
 		inLobby = false;
 		lobby = null;
 		active = true;
 		over = false;
-		sentSeq = recvSeq = 0;
-		resetTurnTracking();
-		if (host) startMyTurn(); else endMyTurn();
-		turnStart = 0;
-		DuelTestDriver.progress("fight starting vs " + oppName);
+		sentSeq = 0;
+		events.clear();
+		incoming.clear();
+		DuelTestDriver.progress("match starting: " + roster.size() + " players, mode " + (mode == MODE_TEAMS ? "teams" : "ffa") + ", I am " + myId);
 
 		Mob.clearHeldAllies();
 		GameLog.wipe();
@@ -390,71 +614,73 @@ public class DuelGame {
 		DuelArenaLevel arena = new DuelArenaLevel();
 		arena.create();
 
-		int mySpawn = host ? DuelArenaLevel.hostSpawn() : DuelArenaLevel.joinerSpawn();
-		int theirSpawn = host ? DuelArenaLevel.joinerSpawn() : DuelArenaLevel.hostSpawn();
+		int myTeam = me().team;
+		for (Player p : roster) {
+			if (p.id == myId) continue;
+			DuelOpponent puppet = new DuelOpponent();
+			boolean ally = mode == MODE_TEAMS && p.team == myTeam;
+			puppet.setup(p, DuelArenaLevel.spawn(indexOf(roster, p)), ally);
+			p.puppet = puppet;
+			arena.mobs.add(puppet);
+		}
 
-		opponent = new DuelOpponent();
-		opponent.setup(ghost, theirSpawn, !host);
-		arena.mobs.add(opponent);
-
-		//saved runs store small leftover times; line my hero up with the start of the fight
 		Hero me = Dungeon.hero;
 		me.HP = me.HT;
 		me.curAction = me.lastAction = null;
 
-		Dungeon.switchLevel(arena, mySpawn);
+		Dungeon.switchLevel(arena, DuelArenaLevel.spawn(indexOf(roster, me())));
+		//saved runs store leftover times; line my hero up with the start of the match
 		Actor.delayChar(me, -me.cooldown());
+
+		controller = new DuelController();
+		Actor.add(controller);
+
+		current = roster.get(0).id;
+		if (current == myId) startMyTurn(); else myTurn = false;
 
 		Game.switchScene(GameScene.class);
 	}
 
+	/** Turns a shared hero back into a Hero object (used only for its defence stats). */
+	private static Hero heroFrom(Bundle heroBundle) {
+		if (heroBundle == null) return null;
+		try {
+			Bundle wrapper = new Bundle();
+			wrapper.put("h", heroBundle);
+			return (Hero) wrapper.get("h");
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+			return null;
+		}
+	}
+
+	private static int indexOf(ArrayList<Player> roster, Player p) {
+		for (int i = 0; i < roster.size(); i++) if (roster.get(i).id == p.id) return i;
+		return 0;
+	}
+
+	static boolean isEnemy(Player p) {
+		if (p == null || p.id == myId) return false;
+		return mode != MODE_TEAMS || p.team != me().team;
+	}
+
+	public static String describe(Player p) {
+		return p.name + (p.id == 0 ? " (host)" : "");
+	}
+
 	// ------------------------------------------------------------------ turns
 
-	private static void resetTurnTracking() {
-		dealt = 0;
-		attacked = false;
-		hitSomething = false;
-	}
-
-	/** My hero damaged the opponent's figure (any source: weapons, wands, burning...). */
-	public static void recordDamageDealt(int dmg) {
-		if (dmg > 0) dealt += dmg;
-	}
-
-	/** My hero swung or shot at the opponent. */
-	public static void recordAttack(boolean hit) {
-		attacked = true;
-		if (hit) hitSomething = true;
-	}
-
-	public static void sendMyTurn() {
-		Hero me = Dungeon.hero;
-		Bundle b = new Bundle();
-		b.put("type", "turn");
-		b.put("pos", me.pos);
-		b.put("hp", Math.max(me.HP, 0));
-		b.put("ht", me.HT);
-		b.put("dmg", dealt);
-		b.put("attacked", attacked);
-		b.put("hit", hitSomething);
-		b.put("seq", ++sentSeq);
-		DuelTestDriver.progress("SENT turn " + sentSeq + ": pos " + me.pos + " hp " + me.HP + " dmg " + dealt
-				+ " attacked " + attacked + " | time " + Actor.now());
-		resetTurnTracking();
-		DuelNet.send(b);
-	}
-
-	private static int sentSeq = 0;
-	private static int recvSeq = 0;
-
-	// ------------------------------------------------------------------ turn token
-	//Only the player holding the turn can act. A turn is one tick of game time, but never
-	//more than MAX_ACTIONS actions (time-stopping effects would otherwise give endless moves).
-	private static final int MAX_ACTIONS = 3;
-	private static boolean myTurn = false;
+	private static volatile int current = 0;
+	private static volatile boolean myTurn = false;
 	private static int actionsThisTurn = 0;
 	private static float turnStart = 0;
+	private static int sentSeq = 0;
 
+	//only the player holding the turn can act. A turn is one tick of game time, but never
+	//more than MAX_ACTIONS actions (time-stopping effects would otherwise give endless moves)
+	private static final int MAX_ACTIONS = 3;
+
+	public static int currentPlayer() { return current; }
 	public static boolean myTurn() { return myTurn; }
 	public static int actionsThisTurn() { return actionsThisTurn; }
 
@@ -462,98 +688,264 @@ public class DuelGame {
 		myTurn = true;
 		actionsThisTurn = 0;
 		turnStart = Actor.now();
+		beginRecording();
 	}
 
-	static void endMyTurn() {
-		myTurn = false;
-	}
-
+	/** Called by the hero whenever it spends time: that's one action of my turn. */
 	public static void heroSpentTime() {
-		if (active && myTurn) actionsThisTurn++;
+		if (active && myTurn) {
+			actionsThisTurn++;
+			samplePositions();
+		}
 	}
 
-	/** Called at the start of every hero turn. If the hero may not act, the opponent is brought forward instead. */
+	/** Start of every hero turn. If the hero may not act, the controller is brought forward instead. */
 	public static boolean heroMayAct() {
-		if (!active || over || opponent == null) return true;
+		if (!active || over || controller == null) return true;
 		if (myTurn) {
 			if (actionsThisTurn == 0) return true;
 			if (actionsThisTurn < MAX_ACTIONS && Actor.now() < turnStart + 1f - 0.001f) return true;
 		}
-		//turn used up (or not ours): let the opponent act right now, before my hero
-		opponent.bringForward();
+		controller.bringForward();
 		return false;
 	}
 
-	public static Bundle pollTurn() {
-		Bundle b = incomingTurns.poll();
-		if (b != null) {
-			int seq = b.getInt("seq");
-			if (seq != recvSeq + 1) {
-				DuelTestDriver.log("OUT OF ORDER: expected turn " + (recvSeq + 1) + " got " + seq);
-			}
-			recvSeq = seq;
+	/** The next living player after the given one, in seat order. */
+	static int nextAlive(int after) {
+		ArrayList<Player> ps = players();
+		int start = 0;
+		for (int i = 0; i < ps.size(); i++) if (ps.get(i).id == after) start = i;
+		for (int k = 1; k <= ps.size(); k++) {
+			Player p = ps.get((start + k) % ps.size());
+			if (p.alive) return p.id;
 		}
-		return b;
+		return after;
 	}
 
-	private static void wakeOpponent() {
+	/** My turn is over: send what happened and pass the turn on. Actor thread. */
+	static void finishMyTurn() {
+		samplePositions();
+		Hero me = Dungeon.hero;
+		Bundle b = new Bundle();
+		b.put("type", "turn");
+		b.put("from", myId);
+		b.put("seq", ++sentSeq);
+		b.put("pos", me.pos);
+		b.put("hp", Math.max(me.HP, 0));
+		b.put("ht", me.HT);
+		ArrayList<Bundle> evs;
+		synchronized (events) {
+			evs = new ArrayList<>(events);
+			events.clear();
+		}
+		b.put("events", evs.toArray(new Bundle[0]));
+		DuelTestDriver.progress("SENT turn " + sentSeq + ": pos " + me.pos + " hp " + me.HP + " events " + describeEvents(evs));
+		DuelNet.broadcast(b);
+
+		myTurn = false;
+		current = nextAlive(myId);
+	}
+
+	// ------------------------------------------------------------------ recording my turn
+
+	private static final ArrayList<Bundle> events = new ArrayList<>();
+	private static int lastMyPos = -1;
+	private static final SparseArray<Integer> lastPuppetPos = new SparseArray<>();
+
+	private static void beginRecording() {
+		//events are not cleared here: damage my burning/poison did between my turns is still owed
+		lastMyPos = Dungeon.hero != null ? Dungeon.hero.pos : -1;
+		lastPuppetPos.clear();
+		for (Player p : players()) {
+			if (p.puppet != null) lastPuppetPos.put(p.id, p.puppet.pos);
+		}
+	}
+
+	private static void addEvent(Bundle e) {
+		synchronized (events) {
+			events.add(e);
+		}
+	}
+
+	/** Notices my hero moving and other figures being pushed by what I did. */
+	static void samplePositions() {
+		Hero me = Dungeon.hero;
+		if (me != null && me.pos != lastMyPos) {
+			Bundle e = new Bundle();
+			e.put("e", "move");
+			e.put("p", me.pos);
+			addEvent(e);
+			lastMyPos = me.pos;
+		}
+		for (Player p : players()) {
+			if (p.puppet == null || !p.alive) continue;
+			Integer last = lastPuppetPos.get(p.id);
+			if (last != null && last != p.puppet.pos) {
+				Bundle e = new Bundle();
+				e.put("e", "push");
+				e.put("t", p.id);
+				e.put("p", p.puppet.pos);
+				addEvent(e);
+			}
+			lastPuppetPos.put(p.id, p.puppet.pos);
+		}
+	}
+
+	/** My hero swung or shot at someone's figure. */
+	static void recordSwing(int target, boolean hit) {
+		if (!active || !myTurn) return;
+		samplePositions(); //any steps first, so playback walks before swinging
+		Bundle e = new Bundle();
+		e.put("e", "swing");
+		e.put("t", target);
+		e.put("h", hit);
+		addEvent(e);
+	}
+
+	/** Someone's figure took damage from my hero's doing (weapons, wands, burning...). */
+	static void recordDamage(int target, int amount) {
+		if (!active || amount <= 0) return;
+		Bundle e = new Bundle();
+		e.put("e", "dmg");
+		e.put("t", target);
+		e.put("a", amount);
+		addEvent(e);
+	}
+
+	static String describeEvents(Collection<Bundle> evs) {
+		StringBuilder sb = new StringBuilder("[");
+		for (Bundle e : evs) {
+			if (sb.length() > 1) sb.append(", ");
+			sb.append(e.getString("e"));
+			if (e.contains("t")) sb.append(" ").append(e.getInt("t"));
+			if (e.contains("p")) sb.append("@").append(e.getInt("p"));
+			if (e.contains("a")) sb.append(" ").append(e.getInt("a"));
+		}
+		return sb.append("]").toString();
+	}
+
+	// ------------------------------------------------------------------ the match director (render thread)
+
+	static Bundle pollIncoming() {
+		return incoming.poll();
+	}
+
+	/** A player is out (dead or gone). Render thread. */
+	static void playerOut(int id, boolean left) {
+		Player p = player(id);
+		if (p == null || !p.alive) return;
+		p.alive = false;
+		if (p.puppet != null) {
+			p.puppet.knockOut();
+		}
+		if (id != myId) {
+			GLog.w(describe(p) + (left ? " left the match." : " was knocked out!"));
+		}
+		if (current == id) {
+			current = nextAlive(id);
+		}
+		checkOver();
+	}
+
+	/** After someone's turn has been played back on my screen. Render thread. */
+	static void turnPlayedBack(int from) {
+		if (over) return;
+		if (current == from) current = nextAlive(from);
+	}
+
+	/** Is it my turn now? Called by the director when it has nothing else to do. */
+	static boolean shouldStartMyTurn() {
+		Player me = me();
+		return active && !over && !myTurn && current == myId && me != null && me.alive;
+	}
+
+	static DuelController controller() {
+		return controller;
+	}
+
+	private static void checkOver() {
+		if (over) return;
+		ArrayList<Integer> teams = new ArrayList<>();
+		for (Player p : players()) {
+			if (p.alive && !teams.contains(p.team)) teams.add(p.team);
+		}
+		if (teams.size() > 1) return;
+
+		over = true;
+		Player me = me();
+		boolean won = me != null && !teams.isEmpty() && me.team == teams.get(0);
+		StringBuilder winners = new StringBuilder();
+		for (Player p : players()) {
+			if (!teams.isEmpty() && p.team == teams.get(0)) {
+				if (winners.length() > 0) winners.append(" and ");
+				winners.append(p.id == myId ? "you" : describe(p));
+			}
+		}
+		DuelTestDriver.progress("MATCH OVER: " + (won ? "won" : "lost") + " (winners: " + winners + ")");
+		GameScene.show(new WndDuelResult(won ? "Victory!" : "Defeat",
+				won ? (mode == MODE_TEAMS ? "Your team wins!" : "You are the last one standing!")
+					: "The winner: " + winners + ".", false));
+	}
+
+	/** The host ended the match or the connection dropped. Render thread. */
+	static void matchEnded(String why) {
+		if (over) return;
+		over = true;
+		GameScene.show(new WndDuelResult("Match ended", why, false));
+	}
+
+	/** Called from Hero.die while a match is active, instead of the normal game-over. */
+	public static void onLocalDeath() {
+		Player me = me();
+		if (me == null || !me.alive) return;
+		Bundle b = new Bundle();
+		b.put("type", "dead");
+		b.put("who", myId);
+		DuelNet.broadcast(b);
+		DuelTestDriver.progress("I was knocked out");
+		myTurn = false;
 		Game.runOnRenderThread(new Callback() {
 			@Override
 			public void call() {
-				if (opponent != null && opponent.isWaiting()) {
-					opponent.next();
+				playerOut(myId, false);
+				if (!over) {
+					GameScene.show(new WndDuelResult("Knocked out",
+							"You're out of this match. Keep watching to see who wins, or leave.", true));
 				}
 			}
 		});
 	}
 
-	// ------------------------------------------------------------------ ending
-
-	/** Called from Hero.die while a duel is active, instead of the normal game-over. */
-	public static void onLocalDeath() {
-		if (over) return;
-		over = true;
-		Bundle b = new Bundle();
-		b.put("type", "defeat");
-		DuelNet.send(b);
-		Game.runOnRenderThread(new Callback() {
-			@Override
-			public void call() {
-				GameScene.show(new WndDuelResult(false, false));
-			}
-		});
-	}
-
-	private static void onOpponentDefeated(boolean forfeit) {
-		if (!active || over) return;
-		over = true;
-		if (opponent != null && opponent.sprite != null && !forfeit) {
-			opponent.sprite.die();
-		}
-		GameScene.show(new WndDuelResult(true, forfeit));
-	}
+	// ------------------------------------------------------------------ leaving
 
 	/**
-	 * Leaves the duel (back to the title screen, or the app is leaving the arena some other
-	 * way). If the fight wasn't finished, the opponent is told they won by forfeit.
+	 * Leaves the match (back to the title screen, or the app is leaving the arena some other
+	 * way). If the match wasn't finished, the others are told this player left.
 	 */
 	public static void leave() {
-		final boolean wasFighting = active && !over;
+		final boolean wasPlaying = active && !over;
+		final boolean wasHost = host;
+		final int id = myId;
 		active = false;
 		inLobby = false;
 		over = true;
-		opponent = null;
-		ghost = null;
+		controller = null;
 		lobby = null;
-		incomingTurns.clear();
+		incoming.clear();
 
 		Thread t = new Thread("Duel leave") {
 			@Override
 			public void run() {
-				if (wasFighting) {
+				if (wasPlaying) {
 					Bundle b = new Bundle();
-					b.put("type", "leave");
-					DuelNet.sendAndClose(b);
+					if (wasHost) {
+						b.put("type", "end");
+						b.put("why", "The host left, so the match has ended.");
+					} else {
+						b.put("type", "left");
+						b.put("who", id);
+					}
+					DuelNet.broadcastAndClose(b);
 				} else {
 					DuelNet.close();
 				}

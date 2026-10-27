@@ -1,5 +1,5 @@
 /*
- * SPD Duel - a 1v1 PvP mod of Shattered Pixel Dungeon
+ * SPD Duel - a PvP mod of Shattered Pixel Dungeon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +19,26 @@ package com.shatteredpixel.shatteredpixeldungeon.duel;
 
 import com.shatteredpixel.shatteredpixeldungeon.windows.WndOptions;
 
+/** End of a match (or being knocked out of one). Saved runs are never affected. */
 public class WndDuelResult extends WndOptions {
 
-	public WndDuelResult(boolean won, boolean forfeit) {
-		super(won ? "Victory!" : "Defeat",
-				won
-					? (forfeit
-						? DuelGame.opponentName() + " left the duel. You win by forfeit."
-						: "You defeated " + DuelGame.opponentName() + "!")
-					: DuelGame.opponentName() + " defeated you. Your saved run is untouched.",
-				"Back to title");
+	private final boolean canWatch;
+
+	public WndDuelResult(String title, String text, boolean canWatch) {
+		super(title, text + "\n\nYour saved runs are untouched.",
+				canWatch ? new String[]{"Keep watching", "Leave match"} : new String[]{"Back to title"});
+		this.canWatch = canWatch;
 	}
 
 	@Override
 	protected void onSelect(int index) {
+		if (canWatch && index == 0) return; //just close the window and spectate
 		DuelGame.returnToTitle();
 	}
 
 	@Override
 	public void onBackPressed() {
 		hide();
-		DuelGame.returnToTitle();
+		if (!canWatch) DuelGame.returnToTitle();
 	}
 }

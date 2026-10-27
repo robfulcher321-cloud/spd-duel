@@ -1,5 +1,5 @@
 /*
- * SPD Duel - a 1v1 PvP mod of Shattered Pixel Dungeon
+ * SPD Duel - a PvP mod of Shattered Pixel Dungeon
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,15 @@
 
 package com.shatteredpixel.shatteredpixeldungeon.duel;
 
-import com.shatteredpixel.shatteredpixeldungeon.Assets;
 import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
-import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
 import com.shatteredpixel.shatteredpixeldungeon.actors.Char;
-import com.shatteredpixel.shatteredpixeldungeon.actors.hero.Hero;
 import com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob;
 import com.shatteredpixel.shatteredpixeldungeon.sprites.CharSprite;
-import com.shatteredpixel.shatteredpixeldungeon.utils.GLog;
-import com.watabou.noosa.audio.Sample;
-import com.watabou.utils.Bundle;
-import com.watabou.utils.PathFinder;
 
 /**
- * The other player's hero as it appears on this phone. It never decides anything itself:
- * on its turn it reports what my hero did, then waits for the other phone's report and
- * replays it.
+ * Another player's hero as it appears on this phone. It's a puppet: it never decides
+ * anything. It moves and swings only when its owner's turn is played back, and anything
+ * my hero does to it (hits, misses, damage, pushes) is recorded and sent to its owner.
  */
 public class DuelOpponent extends Mob {
 
@@ -48,48 +41,52 @@ public class DuelOpponent extends Mob {
 		alignment = Alignment.ENEMY;
 	}
 
-	private Hero ghost;
-	private volatile boolean waiting = false;
-	private boolean announced = false;
-	private boolean reportedSinceLastTurn;
+	private DuelGame.Player owner;
+	private boolean ally = false;
 
-	private int pendingDamage = 0;
-	private boolean pendingHit = false;
-
-	public void setup(Hero ghost, int spawn, boolean movesFirst) {
-		this.ghost = ghost;
+	public void setup(DuelGame.Player owner, int spawn, boolean ally) {
+		this.owner = owner;
+		this.ally = ally;
 		this.pos = spawn;
-		ghost.pos = spawn;
-		HT = Math.max(1, ghost.HT);
+		if (owner.ghost != null) {
+			owner.ghost.pos = spawn;
+			HT = Math.max(1, owner.ghost.HT);
+		}
 		HP = HT;
+		alignment = ally ? Alignment.ALLY : Alignment.ENEMY;
 		enemySeen = true;
-
-		//the figure always gets to look in before my hero at equal times; the turn token
-		//(DuelGame.myTurn) decides who actually acts
-		actPriority = HERO_PRIO + 1;
 	}
 
-	public boolean isWaiting() {
-		return waiting;
+	public int ownerId() {
+		return owner == null ? -1 : owner.id;
+	}
+
+	@Override
+	public CharSprite sprite() {
+		return new DuelOpponentSprite(owner == null ? com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass.WARRIOR : owner.cls,
+				owner == null ? 0 : owner.tier);
 	}
 
 	@Override
 	public String name() {
-		return DuelGame.opponentName();
+		if (owner == null) return "Opponent";
+		return owner.name + (ally ? " (ally)" : "");
 	}
 
 	@Override
 	public String description() {
-		return "Another player's hero. Every swing they take is rolled on their phone.";
+		return ally
+				? "Your teammate. Their phone controls this hero."
+				: "Another player's hero. Their phone controls it and rolls its attacks.";
 	}
 
 	// ------------------------------------------------------------- defence, from their real stats
 
 	@Override
 	public int defenseSkill(Char enemy) {
-		if (ghost != null) {
+		if (owner != null && owner.ghost != null) {
 			try {
-				return ghost.defenseSkill(enemy);
+				return owner.ghost.defenseSkill(enemy);
 			} catch (Exception ignored) {}
 		}
 		return 5;
@@ -97,9 +94,9 @@ public class DuelOpponent extends Mob {
 
 	@Override
 	public int drRoll() {
-		if (ghost != null) {
+		if (owner != null && owner.ghost != null) {
 			try {
-				return ghost.drRoll();
+				return owner.ghost.drRoll();
 			} catch (Exception ignored) {}
 		}
 		return 0;
@@ -108,10 +105,10 @@ public class DuelOpponent extends Mob {
 	@Override
 	public String defenseVerb() {
 		//only called when an attack misses this figure
-		if (Dungeon.hero != null) DuelGame.recordAttack(false);
-		if (ghost != null) {
+		if (Dungeon.hero != null) DuelGame.recordSwing(ownerId(), false);
+		if (owner != null && owner.ghost != null) {
 			try {
-				return ghost.defenseVerb();
+				return owner.ghost.defenseVerb();
 			} catch (Exception ignored) {}
 		}
 		return "dodged";
@@ -119,113 +116,101 @@ public class DuelOpponent extends Mob {
 
 	@Override
 	public int defenseProc(Char enemy, int damage) {
-		if (enemy == Dungeon.hero) DuelGame.recordAttack(true);
+		if (enemy == Dungeon.hero) DuelGame.recordSwing(ownerId(), true);
 		return super.defenseProc(enemy, damage);
 	}
 
 	@Override
 	public boolean surprisedBy(Char enemy, boolean attacking) {
-		//no free sneak attacks just for opening the fight; invisibility still counts
+		//no free sneak attacks just for the fight starting; invisibility still counts
 		return enemy == Dungeon.hero && enemy.invisible > 0 && (!attacking || enemy.canSurpriseAttack());
 	}
 
 	@Override
 	public void damage(int dmg, Object src) {
-		if (DuelGame.active() && !DuelGame.isOver()) {
-			DuelGame.recordDamageDealt(dmg);
+		if (DuelGame.active() && !DuelGame.isOver() && owner != null && owner.alive) {
+			DuelGame.recordDamage(ownerId(), dmg);
 		}
 		super.damage(dmg, src);
 	}
 
 	@Override
 	public void die(Object cause) {
-		//only the other phone decides when its hero is dead; keep the figure standing until it says so
+		//only the owner's phone decides when their hero is dead; keep the figure standing until it says so
 		HP = Math.max(HP, 1);
 	}
 
-	// ------------------------------------------------------------- turns
-
 	@Override
-	protected boolean act() {
-		try {
-			return doAct();
-		} catch (Throwable t) {
-			//never let a duel bug freeze the game: report it and carry on
-			com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon.reportException(t);
-			DuelTestDriver.log("ERROR in opponent act: " + t);
-			GLog.n("Duel error: " + t.getClass().getSimpleName() + " " + t.getMessage());
-			waiting = false;
-			scheduleIn(TICK);
-			return true;
+	public boolean interact(Char c) {
+		//teammates don't swap places (that would only happen on one phone)
+		return true;
+	}
+
+	// ------------------------------------------------------------- driven by playback
+
+	public void placeAt(int cell) {
+		pos = cell;
+		if (owner != null && owner.ghost != null) owner.ghost.pos = cell;
+		Dungeon.level.occupyCell(this);
+	}
+
+	/** End of the owner's turn: their phone's word on where they are and how healthy. */
+	public void syncFrom(int newPos, int hp, int ht) {
+		HT = Math.max(1, ht);
+		HP = Math.max(1, Math.min(HT, hp));
+		if (owner != null && owner.ghost != null) {
+			owner.ghost.HT = HT;
+			owner.ghost.HP = HP;
+		}
+		if (newPos != pos && newPos >= 0 && newPos < Dungeon.level.length()) {
+			int to = DuelController.EventPlayer.freeCellNear(newPos, this);
+			if (to >= 0) {
+				placeAt(to);
+				if (sprite != null) sprite.place(to);
+			}
 		}
 	}
 
-	private boolean doAct() {
-		DuelTestDriver.log("opponent act at time " + Actor.now() + " (myTurn=" + DuelGame.myTurn()
-				+ ", actions=" + DuelGame.actionsThisTurn() + ", waiting=" + waiting + ")");
+	/** Someone else hit this player; the real number lands on their phone. */
+	public void showHit(int amount) {
+		HP = Math.max(1, HP - amount);
+		if (sprite != null && sprite.visible) {
+			sprite.showStatus(CharSprite.NEGATIVE, Integer.toString(amount));
+			sprite.flash();
+		}
+	}
+
+	public void knockOut() {
+		if (sprite != null) sprite.die();
+		destroy();
+	}
+
+	@Override
+	public void destroy() {
+		super.destroy();
+	}
+
+	// ------------------------------------------------------------- never acts on its own
+
+	@Override
+	protected boolean act() {
+		//status effects from my phone (sleep, charm, corruption...) can't reach the real hero,
+		//so they mustn't change how this figure looks or behaves either
+		state = HUNTING;
+		alignment = ally ? Alignment.ALLY : Alignment.ENEMY;
+		paralysed = 0;
 		if (fieldOfView == null || fieldOfView.length != Dungeon.level.length()) {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
 		Dungeon.level.updateFieldOfView(this, fieldOfView);
-
-		//local effects (sleep, charm, corruption, paralysis...) can't reach the real hero on the
-		//other phone, so they mustn't change how this figure behaves either
-		state = HUNTING;
-		alignment = Alignment.ENEMY;
-		paralysed = 0;
-
-		if (!announced) {
-			announced = true;
-			GLog.h("Duel against " + name() + "! " + (DuelGame.isHost() ? "You move first." : "They move first."));
-		}
-
-		if (!DuelGame.active() || DuelGame.isOver()) {
-			waiting = false;
-			scheduleIn(TICK);
-			return true;
-		}
-
-		if (DuelGame.myTurn()) {
-			if (DuelGame.actionsThisTurn() == 0) {
-				//my hero hasn't done anything yet this turn; check back after it has
-				scheduleIn(TICK);
-				return true;
-			}
-			DuelGame.sendMyTurn();
-			DuelGame.endMyTurn();
-		}
-
-		Bundle turn = DuelGame.pollTurn();
-		if (turn == null) {
-			if (!waiting) {
-				waiting = true;
-				GLog.i("Waiting for " + name() + "...");
-			}
-			//stay the current actor until the message arrives; DuelGame calls next() then
-			return false;
-		}
-
-		waiting = false;
-		DuelTestDriver.progress("replaying their turn " + turn.getInt("seq"));
-		return replay(turn);
-	}
-
-	// ------------------------------------------------------------- timing (only this class moves it)
-
-	private boolean internalTime = false;
-
-	/** Next look-in is this far from now, regardless of slow/haste/freeze effects on the figure. */
-	private void scheduleIn(float delay) {
 		internalTime = true;
 		timeToNow();
-		super.spendConstant(delay);
+		super.spendConstant(TICK);
 		internalTime = false;
+		return true;
 	}
 
-	/** Called when my hero hands the turn over: act right away, ahead of my hero. */
-	public void bringForward() {
-		timeToNow();
-	}
+	private boolean internalTime = false;
 
 	@Override
 	protected void spend(float time) {
@@ -235,7 +220,6 @@ public class DuelOpponent extends Mob {
 	@Override
 	protected void spendConstant(float time) {
 		if (internalTime) super.spendConstant(time);
-		//otherwise ignore (time-freezing effects, other code delaying this figure)
 	}
 
 	@Override
@@ -243,91 +227,8 @@ public class DuelOpponent extends Mob {
 		//ignore
 	}
 
-	private boolean replay(Bundle turn) {
-		HT = Math.max(1, turn.getInt("ht"));
-		HP = Math.max(1, Math.min(HT, turn.getInt("hp")));
-		if (ghost != null) {
-			ghost.HT = HT;
-			ghost.HP = HP;
-		}
-
-		moveTo(turn.getInt("pos"));
-
-		int dmg = turn.getInt("dmg");
-		boolean swung = turn.getBoolean("attacked");
-		boolean hit = turn.getBoolean("hit");
-
-		Hero me = Dungeon.hero;
-		if (swung && me != null && sprite != null && sprite.visible && !sprite.paused && !sprite.isMoving) {
-			pendingDamage = dmg;
-			pendingHit = hit;
-			sprite.attack(me.pos);
-			return false; //onAttackComplete finishes the turn
-		}
-
-		applyIncoming(dmg, swung, hit);
-		finishReplay();
-		return true;
-	}
-
-	private void finishReplay() {
-		DuelGame.startMyTurn();
-		scheduleIn(TICK); //my hero gets one tick of time, then I report back
-	}
-
-	private void moveTo(int newPos) {
-		if (newPos == pos || newPos < 0 || newPos >= Dungeon.level.length()) return;
-
-		Char occupant = Actor.findChar(newPos);
-		if (occupant != null && occupant != this) {
-			//my hero is standing there (e.g. something on my phone knocked us around); stand next to it
-			int best = -1;
-			for (int n : PathFinder.NEIGHBOURS8) {
-				int c = newPos + n;
-				if (c >= 0 && c < Dungeon.level.length() && Dungeon.level.passable[c] && Actor.findChar(c) == null) {
-					best = c;
-					break;
-				}
-			}
-			if (best == -1) return;
-			newPos = best;
-		}
-
-		int old = pos;
-		pos = newPos;
-		if (ghost != null) ghost.pos = newPos;
-		if (sprite != null) {
-			if (Dungeon.level.adjacent(old, newPos)) {
-				sprite.move(old, newPos);
-			} else {
-				sprite.place(newPos);
-			}
-		}
-		Dungeon.level.occupyCell(this);
-	}
-
 	@Override
 	public void onAttackComplete() {
-		applyIncoming(pendingDamage, true, pendingHit);
-		pendingDamage = 0;
-		pendingHit = false;
-		finishReplay();
-		next();
-	}
-
-	private void applyIncoming(int dmg, boolean swung, boolean hit) {
-		Hero me = Dungeon.hero;
-		if (me == null || !me.isAlive()) return;
-
-		if (swung && !hit && dmg <= 0) {
-			if (me.sprite != null) me.sprite.showStatus(CharSprite.NEUTRAL, me.defenseVerb());
-			Sample.INSTANCE.play(Assets.Sounds.MISS);
-			return;
-		}
-
-		if (dmg > 0) {
-			if (swung) Sample.INSTANCE.play(Assets.Sounds.HIT);
-			me.damage(dmg, this);
-		}
+		//swings are only animations here; damage comes from the owner's turn events
 	}
 }

@@ -778,6 +778,11 @@ public class GameScene extends PixelScene {
 		if (!invVisible) toggleInvPane();
 		fadeIn();
 
+		//SPD Duel: plays other players' turns back on this screen
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
+			add(new com.shatteredpixel.shatteredpixeldungeon.duel.DuelController.Director());
+		}
+
 		//re-show WndResurrect if needed
 		if (!Dungeon.hero.isAlive()){
 			//check if hero has an unblessed ankh

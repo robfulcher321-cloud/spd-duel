@@ -30,39 +30,33 @@ import com.shatteredpixel.shatteredpixeldungeon.levels.Terrain;
  */
 public class DuelArenaLevel extends Level {
 
-	//interior is 13x11, surrounded by a wall
-	public static final int W = 15;
-	public static final int H = 13;
+	//interior is 15x13, surrounded by a wall; spawns are marked 1-4 (seat order)
+	public static final int W = 17;
+	public static final int H = 15;
 
-	//    x: 0123456789ABCDE
+	//    x: 0123456789ABCDEFG
 	private static final String[] LAYOUT = {
-			"###############",
-			"#.............#",
-			"#.............#",
-			"#...#.....#...#",
-			"#.............#",
-			"#......~......#",
-			"#..H..~#~..J..#",
-			"#......~......#",
-			"#.............#",
-			"#...#.....#...#",
-			"#.............#",
-			"#.............#",
-			"###############",
+			"#################",
+			"#...............#",
+			"#.3...........4.#",
+			"#...#.......#...#",
+			"#...............#",
+			"#.......~.......#",
+			"#......~~~......#",
+			"#.....~~#~~.....#",
+			"#......~~~......#",
+			"#.......~.......#",
+			"#...............#",
+			"#...#.......#...#",
+			"#.1...........2.#",
+			"#...............#",
+			"#################",
 	};
 
-	{
-		color1 = 0x534f3e;
-		color2 = 0xb9d661;
-		viewDistance = 12;
-	}
-
-	public static int hostSpawn() {
-		return find('H');
-	}
-
-	public static int joinerSpawn() {
-		return find('J');
+	/** Starting cell for the n-th player (0-based seat). 1v1 uses opposite corners. */
+	public static int spawn(int seat) {
+		char[] order = {'1', '4', '3', '2'};
+		return find(order[seat % order.length]);
 	}
 
 	private static int find(char c) {
@@ -71,6 +65,12 @@ public class DuelArenaLevel extends Level {
 			if (x >= 0) return y * W + x;
 		}
 		return W + 1;
+	}
+
+	{
+		color1 = 0x534f3e;
+		color2 = 0xb9d661;
+		viewDistance = 14;
 	}
 
 	@Override
@@ -88,7 +88,7 @@ public class DuelArenaLevel extends Level {
 		//the base level code may have rolled a random floor feeling (dark, etc.) from this
 		//player's run seed; the arena must look and play the same on both phones
 		feeling = Feeling.NONE;
-		viewDistance = 12;
+		viewDistance = 14;
 		//locked like a boss arena: no hunger, no walking out through transitions
 		locked = true;
 
@@ -110,7 +110,7 @@ public class DuelArenaLevel extends Level {
 
 	@Override
 	public int entrance() {
-		return hostSpawn();
+		return spawn(0);
 	}
 
 	@Override
@@ -133,6 +133,6 @@ public class DuelArenaLevel extends Level {
 
 	@Override
 	public int randomRespawnCell(Char ch) {
-		return DuelGame.isHost() ? hostSpawn() : joinerSpawn();
+		return spawn(0);
 	}
 }

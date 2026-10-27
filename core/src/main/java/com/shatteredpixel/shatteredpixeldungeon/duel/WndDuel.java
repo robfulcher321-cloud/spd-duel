@@ -47,9 +47,9 @@ public class WndDuel extends WndOptions {
 
 	public WndDuel() {
 		super("Duel",
-				"Fight another player's hero, phone to phone on the same Wi-Fi. " +
-				"You fight with the hero from one of your saved runs; the run itself isn't changed.",
-				"Host a duel", "Join a duel");
+				"Fight up to 3 other players' heroes, phone to phone on the same Wi-Fi (or ZeroTier). " +
+				"Free-for-all or teams. Use a hero from a saved run (the run isn't changed) or a test fighter.",
+				"Host a match", "Join a match");
 	}
 
 	@Override
@@ -299,71 +299,9 @@ public class WndDuel extends WndOptions {
 	// ------------------------------------------------------------------ hosting
 
 	private static void startHosting() {
-		final WndStatus status = new WndStatus("Hosting",
-				"Waiting for an opponent...\n\n" +
-				"On the other phone: Duel > Join a duel. If your game doesn't show up there, " +
-				"enter this IP: " + DuelNet.localIp() + "\n\nBoth phones must be on the same Wi-Fi " +
-				"(a phone hotspot works too).");
-		show(status);
-		DuelGame.hostLobby(status);
-	}
-
-	// ------------------------------------------------------------------ status window
-
-	public static class WndStatus extends Window implements DuelGame.LobbyListener {
-
-		private final RenderedTextBlock title;
-		private final RenderedTextBlock text;
-		private final RedButton cancel;
-
-		public WndStatus(String titleText, String message) {
-			super();
-
-			title = PixelScene.renderTextBlock(titleText, 9);
-			title.hardlight(TITLE_COLOR);
-			add(title);
-
-			text = PixelScene.renderTextBlock(6);
-			add(text);
-
-			cancel = new RedButton("Cancel") {
-				@Override
-				protected void onClick() {
-					DuelGame.cancelLobby();
-					WndStatus.this.hide();
-				}
-			};
-			add(cancel);
-
-			setMessage(message);
-		}
-
-		private void setMessage(String message) {
-			int w = width();
-			title.maxWidth(w);
-			title.setPos(0, 2);
-			text.text(message, w);
-			text.setPos(0, title.bottom() + 4);
-			cancel.setRect(0, text.bottom() + 6, w, 18);
-			resize(w, (int) cancel.bottom());
-		}
-
-		@Override
-		public void onBackPressed() {
-			DuelGame.cancelLobby();
-			super.onBackPressed();
-		}
-
-		@Override
-		public void onStatus(String message) {
-			if (parent != null) setMessage(message);
-		}
-
-		@Override
-		public void onFailed(String reason) {
-			if (parent != null) hide();
-			show(new WndOptions("Duel cancelled", reason, "OK"));
-		}
+		WndLobby lobby = new WndLobby(true, null);
+		show(lobby);
+		DuelGame.hostLobby(lobby);
 	}
 
 	// ------------------------------------------------------------------ joining
@@ -409,7 +347,7 @@ public class WndDuel extends WndOptions {
 			int w = width();
 			float y = 2;
 
-			RenderedTextBlock title = PixelScene.renderTextBlock("Join a duel", 9);
+			RenderedTextBlock title = PixelScene.renderTextBlock("Join a match", 9);
 			title.hardlight(TITLE_COLOR);
 			title.maxWidth(w);
 			title.setPos(0, y);
@@ -419,7 +357,7 @@ public class WndDuel extends WndOptions {
 
 			RenderedTextBlock text = PixelScene.renderTextBlock(6);
 			text.text(hosts.isEmpty()
-					? "Looking for duels on this Wi-Fi...\n\nIf nothing appears after a few seconds, enter the IP shown on the host's phone."
+					? "Looking for matches on this network...\n\nIf nothing appears after a few seconds, enter the IP shown on the host's phone."
 					: "Tap a game to join it:", w);
 			text.setPos(0, y);
 			add(text);
@@ -444,8 +382,8 @@ public class WndDuel extends WndOptions {
 				@Override
 				protected void onClick() {
 					show(new WndTextInput("Host's IP address",
-							"Type the IP shown on the host's screen, e.g. 192.168.1.20",
-							"192.168.", 40, false, "Join", "Cancel") {
+							"Type the IP shown in the host's lobby, e.g. 192.168.1.20 (or their ZeroTier IP)",
+							"", 40, false, "Join", "Cancel") {
 						@Override
 						public void onSelect(boolean positive, String ip) {
 							if (positive && ip != null && !ip.trim().isEmpty()) {
@@ -477,9 +415,9 @@ public class WndDuel extends WndOptions {
 		private void connect(String ip) {
 			DuelNet.stopDiscovery();
 			hide();
-			WndStatus status = new WndStatus("Joining", "Connecting to " + ip + "...");
-			show(status);
-			DuelGame.joinLobby(ip, status);
+			WndLobby lobby = new WndLobby(false, "Connecting to " + ip + "...");
+			show(lobby);
+			DuelGame.joinLobby(ip, lobby);
 		}
 
 		@Override
