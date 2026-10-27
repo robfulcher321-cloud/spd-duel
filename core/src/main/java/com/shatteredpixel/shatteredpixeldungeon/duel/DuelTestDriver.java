@@ -164,6 +164,19 @@ public class DuelTestDriver {
 			if (target == -1) target = h.pos; //nowhere to go: wait
 		}
 
+		//stress test: hit the opponent figure (and my hero) with the local effects that broke sync on phones
+		if (actions == 2 && "host".equals(mode())) {
+			log("STRESS: putting the opponent figure to sleep, slowing, chilling and paralysing it");
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.affect(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.MagicalSleep.class);
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Slow.class, 10f);
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Chill.class, 10f);
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.prolong(opp, com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Paralysis.class, 5f);
+		}
+		if (actions == 4 && "join".equals(mode())) {
+			log("STRESS: giving my hero a time bubble (time stops for 6 turns)");
+			com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff.affect(h, com.shatteredpixel.shatteredpixeldungeon.plants.Swiftthistle.TimeBubble.class).reset();
+		}
+
 		actions++;
 		progress("my action " + actions + ": " + (target == opp.pos ? "attack" : "move")
 				+ " | me HP " + h.HP + "/" + h.HT + " at " + h.pos

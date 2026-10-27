@@ -378,6 +378,8 @@ public class DuelGame {
 		over = false;
 		sentSeq = recvSeq = 0;
 		resetTurnTracking();
+		if (host) startMyTurn(); else endMyTurn();
+		turnStart = 0;
 		DuelTestDriver.progress("fight starting vs " + oppName);
 
 		Mob.clearHeldAllies();
@@ -444,6 +446,43 @@ public class DuelGame {
 
 	private static int sentSeq = 0;
 	private static int recvSeq = 0;
+
+	// ------------------------------------------------------------------ turn token
+	//Only the player holding the turn can act. A turn is one tick of game time, but never
+	//more than MAX_ACTIONS actions (time-stopping effects would otherwise give endless moves).
+	private static final int MAX_ACTIONS = 3;
+	private static boolean myTurn = false;
+	private static int actionsThisTurn = 0;
+	private static float turnStart = 0;
+
+	public static boolean myTurn() { return myTurn; }
+	public static int actionsThisTurn() { return actionsThisTurn; }
+
+	static void startMyTurn() {
+		myTurn = true;
+		actionsThisTurn = 0;
+		turnStart = Actor.now();
+	}
+
+	static void endMyTurn() {
+		myTurn = false;
+	}
+
+	public static void heroSpentTime() {
+		if (active && myTurn) actionsThisTurn++;
+	}
+
+	/** Called at the start of every hero turn. If the hero may not act, the opponent is brought forward instead. */
+	public static boolean heroMayAct() {
+		if (!active || over || opponent == null) return true;
+		if (myTurn) {
+			if (actionsThisTurn == 0) return true;
+			if (actionsThisTurn < MAX_ACTIONS && Actor.now() < turnStart + 1f - 0.001f) return true;
+		}
+		//turn used up (or not ours): let the opponent act right now, before my hero
+		opponent.bringForward();
+		return false;
+	}
 
 	public static Bundle pollTurn() {
 		Bundle b = incomingTurns.poll();

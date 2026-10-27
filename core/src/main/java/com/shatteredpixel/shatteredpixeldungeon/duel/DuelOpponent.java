@@ -64,14 +64,9 @@ public class DuelOpponent extends Mob {
 		HP = HT;
 		enemySeen = true;
 
-		if (movesFirst) {
-			//on the joining phone the opponent (the host) acts before my hero each round,
-			//and there's nothing of mine to report before their first move
-			actPriority = HERO_PRIO + 1;
-			reportedSinceLastTurn = true;
-		} else {
-			reportedSinceLastTurn = false;
-		}
+		//the figure always gets to look in before my hero at equal times; the turn token
+		//(DuelGame.myTurn) decides who actually acts
+		actPriority = HERO_PRIO + 1;
 	}
 
 	public boolean isWaiting() {
@@ -160,32 +155,44 @@ public class DuelOpponent extends Mob {
 			DuelTestDriver.log("ERROR in opponent act: " + t);
 			GLog.n("Duel error: " + t.getClass().getSimpleName() + " " + t.getMessage());
 			waiting = false;
-			spend(TICK);
+			scheduleIn(TICK);
 			return true;
 		}
 	}
 
 	private boolean doAct() {
-		DuelTestDriver.log("opponent act at time " + Actor.now() + " (reported=" + reportedSinceLastTurn + ", waiting=" + waiting + ")");
+		DuelTestDriver.log("opponent act at time " + Actor.now() + " (myTurn=" + DuelGame.myTurn()
+				+ ", actions=" + DuelGame.actionsThisTurn() + ", waiting=" + waiting + ")");
 		if (fieldOfView == null || fieldOfView.length != Dungeon.level.length()) {
 			fieldOfView = new boolean[Dungeon.level.length()];
 		}
 		Dungeon.level.updateFieldOfView(this, fieldOfView);
 
+		//local effects (sleep, charm, corruption, paralysis...) can't reach the real hero on the
+		//other phone, so they mustn't change how this figure behaves either
+		state = HUNTING;
+		alignment = Alignment.ENEMY;
+		paralysed = 0;
+
 		if (!announced) {
 			announced = true;
-			GLog.h("Duel against " + name() + "! " + (DuelGame.isHost() ? "You moved first." : "They move first."));
+			GLog.h("Duel against " + name() + "! " + (DuelGame.isHost() ? "You move first." : "They move first."));
 		}
 
 		if (!DuelGame.active() || DuelGame.isOver()) {
 			waiting = false;
-			spend(TICK);
+			scheduleIn(TICK);
 			return true;
 		}
 
-		if (!reportedSinceLastTurn) {
+		if (DuelGame.myTurn()) {
+			if (DuelGame.actionsThisTurn() == 0) {
+				//my hero hasn't done anything yet this turn; check back after it has
+				scheduleIn(TICK);
+				return true;
+			}
 			DuelGame.sendMyTurn();
-			reportedSinceLastTurn = true;
+			DuelGame.endMyTurn();
 		}
 
 		Bundle turn = DuelGame.pollTurn();
@@ -199,9 +206,41 @@ public class DuelOpponent extends Mob {
 		}
 
 		waiting = false;
-		reportedSinceLastTurn = false;
 		DuelTestDriver.progress("replaying their turn " + turn.getInt("seq"));
 		return replay(turn);
+	}
+
+	// ------------------------------------------------------------- timing (only this class moves it)
+
+	private boolean internalTime = false;
+
+	/** Next look-in is this far from now, regardless of slow/haste/freeze effects on the figure. */
+	private void scheduleIn(float delay) {
+		internalTime = true;
+		timeToNow();
+		super.spendConstant(delay);
+		internalTime = false;
+	}
+
+	/** Called when my hero hands the turn over: act right away, ahead of my hero. */
+	public void bringForward() {
+		timeToNow();
+	}
+
+	@Override
+	protected void spend(float time) {
+		//ignore: slow, chill, haste etc. on this figure only exist on one phone
+	}
+
+	@Override
+	protected void spendConstant(float time) {
+		if (internalTime) super.spendConstant(time);
+		//otherwise ignore (time-freezing effects, other code delaying this figure)
+	}
+
+	@Override
+	protected void postpone(float time) {
+		//ignore
 	}
 
 	private boolean replay(Bundle turn) {
@@ -219,7 +258,7 @@ public class DuelOpponent extends Mob {
 		boolean hit = turn.getBoolean("hit");
 
 		Hero me = Dungeon.hero;
-		if (swung && me != null && sprite != null && sprite.visible) {
+		if (swung && me != null && sprite != null && sprite.visible && !sprite.paused && !sprite.isMoving) {
 			pendingDamage = dmg;
 			pendingHit = hit;
 			sprite.attack(me.pos);
@@ -227,8 +266,13 @@ public class DuelOpponent extends Mob {
 		}
 
 		applyIncoming(dmg, swung, hit);
-		spend(TICK);
+		finishReplay();
 		return true;
+	}
+
+	private void finishReplay() {
+		DuelGame.startMyTurn();
+		scheduleIn(TICK); //my hero gets one tick of time, then I report back
 	}
 
 	private void moveTo(int newPos) {
@@ -267,7 +311,7 @@ public class DuelOpponent extends Mob {
 		applyIncoming(pendingDamage, true, pendingHit);
 		pendingDamage = 0;
 		pendingHit = false;
-		spend(TICK);
+		finishReplay();
 		next();
 	}
 

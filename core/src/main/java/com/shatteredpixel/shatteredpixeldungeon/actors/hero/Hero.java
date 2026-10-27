@@ -840,6 +840,8 @@ public class Hero extends Char {
 
 	@Override
 	public void spendConstant(float time) {
+		//SPD Duel: every bit of time the hero spends is an action taken this turn
+		if (time > 0) com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.heroSpentTime();
 		super.spendConstant(time);
 	}
 
@@ -857,6 +859,12 @@ public class Hero extends Char {
 	
 	@Override
 	public boolean act() {
+
+		//SPD Duel: only the player holding the turn may act; otherwise hand over to the opponent
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()
+				&& !com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.heroMayAct()) {
+			return true;
+		}
 		
 		//calls to dungeon.observe will also update hero's local FOV.
 		fieldOfView = Dungeon.level.heroFOV;
