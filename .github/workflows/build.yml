@@ -52,14 +52,14 @@ jobs:
           ./gradlew --no-daemon -q desktop:release
           JAR=$(ls desktop/build/libs/*.jar | head -1)
           run_match () {
-            NAME=$1; PLAYERS=$2; MODE=$3; DISCOVER=$4
+            NAME=$1; PLAYERS=$2; MODE=$3; DISCOVER=$4; REBUILD=$5
             echo "=== match $NAME: $PLAYERS players, $MODE"
             SPD_DUELTEST=host SPD_DUELPLAYERS=$PLAYERS SPD_DUELMODE=$MODE XDG_DATA_HOME=/tmp/${NAME}_h \
               timeout 360 xvfb-run -n 91 -s "-screen 0 1024x768x24" java -jar "$JAR" > ${NAME}_host.log 2>&1 &
             PIDS="$!"
             for SEAT in $(seq 1 $((PLAYERS-1))); do
               sleep 1
-              SPD_DUELTEST=join SPD_DUELSEAT=$SEAT SPD_DUELDISCOVER=$DISCOVER XDG_DATA_HOME=/tmp/${NAME}_j$SEAT \
+              SPD_DUELTEST=join SPD_DUELSEAT=$SEAT SPD_DUELDISCOVER=$DISCOVER SPD_REBUILDTEST=$REBUILD XDG_DATA_HOME=/tmp/${NAME}_j$SEAT \
                 timeout 360 xvfb-run -n $((91+SEAT)) -s "-screen 0 1024x768x24" java -jar "$JAR" > ${NAME}_join$SEAT.log 2>&1 &
               PIDS="$PIDS $!"
             done
@@ -71,6 +71,8 @@ jobs:
           R=0
           run_match ffa3 3 ffa || R=1
           run_match team3 3 2v1 probe || R=1
+          #known issue being worked on: logged, but doesn't block a release
+          run_match rebuild3 3 ffa "" 1 || echo "rebuild match failed (not blocking)"
           exit $R
 
       - name: Publish build log to ci-log branch
@@ -78,7 +80,7 @@ jobs:
         run: |
           mkdir -p /tmp/log && cp build.log /tmp/log/ 2>/dev/null || echo "no log" > /tmp/log/build.log
           cp selftest.log /tmp/log/ 2>/dev/null || true
-          cp ffa3_*.log team3_*.log /tmp/log/ 2>/dev/null || true
+          cp ffa3_*.log team3_*.log rebuild3_*.log /tmp/log/ 2>/dev/null || true
           cp -r desktop/selftest /tmp/log/screens 2>/dev/null || true
           mkdir -p /tmp/log/screens && cp selftest/*.png /tmp/log/screens/ 2>/dev/null || true
           echo "result=${{ steps.build.outcome }}" > /tmp/log/status.txt

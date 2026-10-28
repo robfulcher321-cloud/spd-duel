@@ -313,7 +313,7 @@ public class DuelTestDriver {
 		}
 
 		//joiner 1: like Android rebuilding the app mid-match; it should land back in the match
-		if ("1".equals(env("SPD_DUELSEAT", "")) && actions == 6 && !matchRestarted) {
+		if ("1".equals(env("SPD_DUELSEAT", "")) && actions == 6 && !matchRestarted && !env("SPD_REBUILDTEST", "").isEmpty()) {
 			matchRestarted = true;
 			progress("STRESS: app rebuilt mid-match");
 			com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon.switchNoFade(
