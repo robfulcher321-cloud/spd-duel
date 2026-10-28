@@ -120,7 +120,13 @@ public class DuelOpponent extends Mob {
 	@Override
 	public int defenseProc(Char enemy, int damage) {
 		if (enemy == Dungeon.hero) DuelGame.recordSwing(ownerId(), true);
-		return super.defenseProc(enemy, damage);
+		try {
+			return super.defenseProc(enemy, damage);
+		} catch (Throwable t) {
+			//a copied buff whose code only works on its real owner
+			DuelTestDriver.log("figure defence skipped: " + t);
+			return damage;
+		}
 	}
 
 	@Override
@@ -136,7 +142,13 @@ public class DuelOpponent extends Mob {
 		if (!lingering && DuelGame.active() && !DuelGame.isOver() && owner != null && owner.alive) {
 			DuelGame.recordDamage(ownerId(), dmg);
 		}
-		super.damage(dmg, src);
+		//display only: the real hit (shields, armour effects...) happens on the owner's phone,
+		//and their buffs' hit code can't run on a figure anyway
+		if (dmg <= 0 || !isAlive()) return;
+		HP = Math.max(1, HP - dmg);
+		if (sprite != null && sprite.visible) {
+			sprite.showStatus(CharSprite.NEGATIVE, Integer.toString(dmg));
+		}
 	}
 
 	// ------------------------------------------------------------- buffs

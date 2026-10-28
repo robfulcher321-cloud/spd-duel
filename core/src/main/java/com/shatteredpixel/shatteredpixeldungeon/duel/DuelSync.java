@@ -68,7 +68,60 @@ public class DuelSync {
 	static Bundle packBuff(Buff b) {
 		Bundle w = pack(b);
 		w.put("dur", b.cooldown());
+		//how it looks, worked out here where the buff is on its real owner: used if the copy
+		//can't safely run on a figure
+		try { w.put("v_icon", b.icon()); } catch (Throwable ignored) {}
+		try { w.put("v_fade", b.iconFadePercent()); } catch (Throwable ignored) {}
+		try { w.put("v_text", b.iconTextDisplay()); } catch (Throwable ignored) {}
+		try { w.put("v_name", b.name()); } catch (Throwable ignored) {}
+		try { w.put("v_desc", b.desc()); } catch (Throwable ignored) {}
+		try { w.put("v_type", b.type.name()); } catch (Throwable ignored) {}
+		if (b instanceof ShieldBuff) {
+			try { w.put("v_shield", ((ShieldBuff) b).shielding()); } catch (Throwable ignored) {}
+		}
 		return w;
+	}
+
+	/**
+	 * Puts a copy of someone's buff on their figure (or a creature copy). Some buffs' code only
+	 * works on your own hero; if any of the copy's display code fails on the figure, it's
+	 * swapped for a look-alike that can't crash.
+	 */
+	static void attachSafely(Char to, Bundle w) {
+		Buff b = unpackBuff(w);
+		if (b != null) {
+			boolean ok;
+			try {
+				Buff existing = to.buff(b.getClass());
+				if (existing != null) existing.detach();
+				ok = b.attachTo(to);
+				if (ok) {
+					b.icon();
+					b.iconFadePercent();
+					b.iconTextDisplay();
+					b.name();
+					b.desc();
+					b.tintIcon(new com.watabou.noosa.Image());
+					if (b instanceof ShieldBuff) ((ShieldBuff) b).shielding();
+				}
+			} catch (Throwable t) {
+				ok = false;
+				try { to.remove(b); } catch (Throwable ignored) {}
+				try { b.fx(false); } catch (Throwable ignored) {}
+				DuelTestDriver.log("showing a look-alike of " + b.getClass().getSimpleName() + " (" + t.getClass().getSimpleName() + ")");
+			}
+			if (ok) return;
+		}
+		//the look-alike
+		DuelBuffView v = new DuelBuffView();
+		v.icon = w.contains("v_icon") ? w.getInt("v_icon") : BuffIndicator.NONE;
+		v.fade = w.getFloat("v_fade");
+		v.iconText = w.getString("v_text");
+		v.title = w.getString("v_name");
+		v.text = w.getString("v_desc");
+		try { v.type = Buff.buffType.valueOf(w.getString("v_type")); } catch (Throwable ignored) {}
+		v.attachTo(to);
+		if (w.contains("v_shield")) v.setShield(w.getInt("v_shield"));
 	}
 
 	static Buff unpackBuff(Bundle w) {
@@ -120,13 +173,7 @@ public class DuelSync {
 				try { b.detach(); } catch (Exception ignored) {}
 			}
 			for (Bundle w : buffs) {
-				Buff b = unpackBuff(w);
-				if (b == null) continue;
-				try {
-					b.attachTo(puppet);
-				} catch (Exception e) {
-					DuelTestDriver.log("couldn't show buff " + b.getClass().getSimpleName() + " on figure: " + e);
-				}
+				attachSafely(puppet, w);
 			}
 		} finally {
 			puppet.applyingSnapshot = false;
@@ -166,14 +213,10 @@ public class DuelSync {
 
 	/** Another player inflicted this on a copy of someone else's creature: show it. */
 	static void applyInflictedToCopy(Char c, Bundle w) {
-		Buff b = unpackBuff(w);
-		if (b == null || c == null) return;
+		if (c == null) return;
 		DuelMirror.applying = true;
 		try {
-			Buff existing = c.buff(b.getClass());
-			if (existing != null) existing.detach();
-			b.attachTo(c);
-		} catch (Exception ignored) {
+			attachSafely(c, w);
 		} finally {
 			DuelMirror.applying = false;
 		}
@@ -182,14 +225,9 @@ public class DuelSync {
 	/** Another player inflicted this on someone else's figure: show it until that player's next turn. */
 	static void applyInflictedToPuppet(DuelOpponent puppet, Bundle w) {
 		if (puppet == null) return;
-		Buff b = unpackBuff(w);
-		if (b == null) return;
 		puppet.applyingSnapshot = true;
 		try {
-			Buff existing = puppet.buff(b.getClass());
-			if (existing != null) existing.detach();
-			b.attachTo(puppet);
-		} catch (Exception ignored) {
+			attachSafely(puppet, w);
 		} finally {
 			puppet.applyingSnapshot = false;
 		}
