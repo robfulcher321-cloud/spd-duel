@@ -1338,6 +1338,7 @@ public class DuelGame {
 		if (over) return;
 		over = true;
 		DuelCrash.sessionOpen(false);
+		DuelTestDriver.log("MATCH ENDED: " + why);
 		GameScene.show(new WndDuelResult("Match ended", why, false));
 	}
 

@@ -428,6 +428,14 @@ public class DuelTestDriver {
 			if (cell == -1) cell = h.pos;
 		}
 
+		//rooted and nothing in reach: wait a turn, like a player would
+		if (cell != target.pos && h.rooted) {
+			actions++;
+			progress("my action " + actions + ": rooted, waiting");
+			h.rest(false);
+			return;
+		}
+
 		actions++;
 		progress("my action " + actions + ": " + (cell == target.pos ? "attack " + target.name() : "move")
 				+ " | me HP " + h.HP + "/" + h.HT + " at " + h.pos + " | target HP " + target.HP + " at " + target.pos);
