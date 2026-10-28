@@ -58,6 +58,7 @@ public class ShatteredPixelDungeon extends Game {
 	@Override
 	public void create() {
 		super.create();
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelCrash.install();
 
 		updateSystemUI();
 		SPDAction.loadBindings();
