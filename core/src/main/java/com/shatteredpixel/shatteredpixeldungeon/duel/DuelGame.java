@@ -174,6 +174,7 @@ public class DuelGame {
 	public static volatile KeepAlive keepAlive;
 
 	private static void keepAlive(boolean on) {
+		DuelCrash.sessionOpen(on);
 		KeepAlive k = keepAlive;
 		if (k == null) return;
 		try {
@@ -870,6 +871,7 @@ public class DuelGame {
 		DuelTestDriver.progress("match starting: " + roster.size() + " players, mode " + (mode == MODE_TEAMS ? "teams" : "ffa") + ", I am " + myId);
 
 		Mob.clearHeldAllies();
+		DuelController.resetPlayback();
 		DuelMirror.reset();
 		DuelFx.install();
 		GameLog.wipe();
@@ -1315,6 +1317,7 @@ public class DuelGame {
 		if (teams.size() > 1) return;
 
 		over = true;
+		DuelCrash.sessionOpen(false);
 		Player me = me();
 		boolean won = me != null && !teams.isEmpty() && sideOf(me) == teams.get(0);
 		StringBuilder winners = new StringBuilder();
@@ -1334,6 +1337,7 @@ public class DuelGame {
 	static void matchEnded(String why) {
 		if (over) return;
 		over = true;
+		DuelCrash.sessionOpen(false);
 		GameScene.show(new WndDuelResult("Match ended", why, false));
 	}
 
@@ -1376,6 +1380,7 @@ public class DuelGame {
 		lobby = null;
 		incoming.clear();
 		keepAlive(false);
+		DuelController.resetPlayback();
 		DuelFx.uninstall();
 		DuelMirror.reset();
 

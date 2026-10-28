@@ -53,6 +53,7 @@ public class DuelKeepAliveService extends Service {
 			}
 		} catch (Exception e) {
 			//not allowed right now (e.g. the app is already in the background): carry on without it
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelCrash.keepAliveStatus("couldn't start (" + e + ")");
 		}
 	}
 
@@ -75,21 +76,32 @@ public class DuelKeepAliveService extends Service {
 				: new Notification.Builder(this);
 		b.setContentTitle("SPD Duel")
 				.setContentText("Match in progress. Tap to go back to it.")
-				.setSmallIcon(R.mipmap.ic_launcher)
+				.setSmallIcon(R.drawable.ic_duel_notify)
 				.setOngoing(true)
 				.setContentIntent(pi);
 		Notification n = b.build();
 
+		String status;
 		try {
 			if (Build.VERSION.SDK_INT >= 29) {
 				startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
 			} else {
 				startForeground(NOTIFICATION_ID, n);
 			}
+			status = "running";
 		} catch (Exception e) {
-			stopSelf();
-			return START_NOT_STICKY;
+			//try once more without naming a type (uses the one in the manifest)
+			try {
+				startForeground(NOTIFICATION_ID, n);
+				status = "running (fallback)";
+			} catch (Exception e2) {
+				com.shatteredpixel.shatteredpixeldungeon.duel.DuelCrash.keepAliveStatus("failed (" + e + ")");
+				stopSelf();
+				return START_NOT_STICKY;
+			}
 		}
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelCrash.keepAliveStatus(status + " since "
+				+ new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date()));
 
 		if (wifiLock == null) {
 			try {

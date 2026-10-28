@@ -87,7 +87,13 @@ public class TitleScene extends PixelScene {
 		super.create();
 
 		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
-			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
+			if (!com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.isOver()) {
+				//the app was restarted under a running match (Android rebuilt it after being in the
+				//background): go straight back to the match instead of ending it
+				ShatteredPixelDungeon.switchNoFade(GameScene.class);
+			} else {
+				com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
+			}
 		}
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelUpdate.checkOnce();
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelCrash.showIfAny();
@@ -316,6 +322,9 @@ public class TitleScene extends PixelScene {
 		}
 
 		fadeIn();
+
+		//same for a lobby: show it again
+		com.shatteredpixel.shatteredpixeldungeon.duel.WndDuel.reopenLobby(this);
 	}
 
 	private float uiAlpha;

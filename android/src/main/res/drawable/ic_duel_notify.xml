@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPD Duel: small white crossed-swords icon for the "match in progress" notification -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+	android:width="24dp"
+	android:height="24dp"
+	android:viewportWidth="24"
+	android:viewportHeight="24">
+	<path
+		android:fillColor="#FFFFFFFF"
+		android:pathData="M3,2 L9,2 L19,12 L21,10 L22,11 L19,14 L21,16 L20,17 L18,15 L15,18 L14,17 L16,15 L6,5 Z M21,2 L15,2 L11,6 L13,8 Z M7,12 L5,14 L3,12 L2,13 L5,16 L3,18 L4,19 L6,17 L9,20 L10,19 L8,17 L10,15 Z" />
+</vector>

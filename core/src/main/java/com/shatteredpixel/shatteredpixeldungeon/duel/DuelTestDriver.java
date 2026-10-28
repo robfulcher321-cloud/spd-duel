@@ -79,6 +79,8 @@ public class DuelTestDriver {
 	private static boolean configured = false;
 	private static boolean pushed = false;
 	private static boolean threw = false;
+	private static boolean lobbyRestarted = false;
+	private static boolean matchRestarted = false;
 	private static boolean lobbyChatted = false;
 	private static boolean matchChatted = false;
 	private static boolean slotsChecked = false;
@@ -249,6 +251,14 @@ public class DuelTestDriver {
 					log("not starting yet: " + DuelGame.startProblem());
 					return;
 				}
+				if (!lobbyRestarted) {
+					//like Android rebuilding the app while the host sits in the lobby
+					lobbyRestarted = true;
+					log("STRESS: app rebuilt while hosting the lobby");
+					com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon.switchNoFade(
+							com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene.class);
+					return;
+				}
 				if (!lobbyChatted) {
 					lobbyChatted = true;
 					DuelChat.send("hello from the host");
@@ -300,6 +310,15 @@ public class DuelTestDriver {
 				else log("QUICKSLOT LEAK: slot " + i + " holds " + it.getClass().getSimpleName() + " that isn't mine");
 			}
 			log("quickslots checked: " + mine + " of my items");
+		}
+
+		//joiner 1: like Android rebuilding the app mid-match; it should land back in the match
+		if ("1".equals(env("SPD_DUELSEAT", "")) && actions == 6 && !matchRestarted) {
+			matchRestarted = true;
+			progress("STRESS: app rebuilt mid-match");
+			com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon.switchNoFade(
+					com.shatteredpixel.shatteredpixeldungeon.scenes.TitleScene.class);
+			return;
 		}
 
 		//chat mid-match (joiner 2), and a look at the screen (host)

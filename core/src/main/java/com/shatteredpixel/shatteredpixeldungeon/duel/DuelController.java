@@ -81,6 +81,11 @@ public class DuelController extends Actor {
 		return false;
 	}
 
+	/** A new match (or leaving one): forget any half-played turn. */
+	static void resetPlayback() {
+		Director.playing = null;
+	}
+
 	/** My hero has used its turn: act right now, ahead of my hero. */
 	public void bringForward() {
 		timeToNow();
@@ -100,7 +105,8 @@ public class DuelController extends Actor {
 	/** Added to the game screen when a match is on. */
 	public static class Director extends Gizmo {
 
-		private EventPlayer playing = null;
+		//static: if Android rebuilds the game screen mid-playback, the new screen carries on
+		private static EventPlayer playing = null;
 
 		@Override
 		public void update() {

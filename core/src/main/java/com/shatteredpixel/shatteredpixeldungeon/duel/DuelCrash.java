@@ -62,11 +62,79 @@ public class DuelCrash {
 		}
 	}
 
+	// ------------------------------------------------------------------ lobby/match closed by the system
+
+	private static final String DIAG = "spd_duel_diag";
+
+	/** A lobby or match opened (or closed normally). If the app dies in between, we'll know next launch. */
+	static void sessionOpen(boolean open) {
+		try {
+			com.badlogic.gdx.Preferences p = Gdx.app.getPreferences(DIAG);
+			if (open) {
+				p.putLong("session", System.currentTimeMillis());
+				p.putString("keepalive", "not started");
+			} else {
+				p.remove("session");
+			}
+			p.flush();
+		} catch (Throwable ignored) {}
+	}
+
+	/** Android: the keep-alive service reports how starting it went. */
+	public static void keepAliveStatus(String status) {
+		try {
+			com.badlogic.gdx.Preferences p = Gdx.app.getPreferences(DIAG);
+			p.putString("keepalive", status);
+			p.flush();
+		} catch (Throwable ignored) {}
+	}
+
+	/** Title screen, fresh app start: if a lobby/match was open when the app went away, say so. */
+	private static boolean showClosedSession() {
+		try {
+			if (DuelGame.inLobby() || DuelGame.active()) return false; //it survived: nothing to report
+			com.badlogic.gdx.Preferences p = Gdx.app.getPreferences(DIAG);
+			if (!p.contains("session")) return false;
+			long when = p.getLong("session");
+			final String keep = p.getString("keepalive", "unknown");
+			p.remove("session");
+			p.flush();
+			final String text = "SPD Duel " + Game.version + ": the lobby/match opened "
+					+ ((System.currentTimeMillis() - when) / 60000) + " min ago was closed because the app "
+					+ "was shut down while in the background. Keep-alive service: " + keep + ".";
+			Game.scene().addToFront(new WndOptions("Your last match was closed",
+					"Android shut the game down while it was in the background, so the lobby or match ended.\n\n"
+							+ "Keep-alive service: " + keep + "\n\n"
+							+ "If this keeps happening, try Settings > Apps > SPD Duel > Battery > Unrestricted. "
+							+ "Tap Copy and paste it to me too.",
+					"Copy", "Close") {
+				@Override
+				protected void onSelect(int index) {
+					if (index == 0) {
+						try {
+							Gdx.app.getClipboard().setContents(text);
+						} catch (Throwable ignored) {}
+					}
+				}
+			});
+			return true;
+		} catch (Throwable ignored) {
+			return false;
+		}
+	}
+
 	/** Title screen: show the last crash, if there was one. */
 	public static void showIfAny() {
 		try {
 			FileHandle f = Gdx.files.local(FILE);
-			if (!f.exists()) return;
+			if (!f.exists()) {
+				showClosedSession();
+				return;
+			}
+			try {
+				Gdx.app.getPreferences(DIAG).remove("session");
+				Gdx.app.getPreferences(DIAG).flush();
+			} catch (Throwable ignored) {}
 			final String text = f.readString();
 			f.delete();
 			String shown = text.length() > 900 ? text.substring(0, 900) + "\n..." : text;

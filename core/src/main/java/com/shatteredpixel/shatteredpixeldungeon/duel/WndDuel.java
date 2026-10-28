@@ -93,6 +93,16 @@ public class WndDuel extends WndOptions {
 		Game.scene().addToFront(w);
 	}
 
+	/** The app was restarted while I was in a lobby: put the lobby back on screen. */
+	public static void reopenLobby(com.watabou.noosa.Scene scene) {
+		if (!DuelGame.inLobby()) return;
+		WndLobby lobby = new WndLobby(DuelGame.isHost(), null);
+		lastShown = lobby;
+		scene.addToFront(lobby);
+		DuelGame.setLobbyListener(lobby);
+		DuelTestDriver.log("lobby reopened after the app restarted");
+	}
+
 	/** Some window I opened later than this one is still on screen (so it's covering it). */
 	static boolean windowAbove(Window w) {
 		return lastShown != null && lastShown != w && lastShown.parent != null;
