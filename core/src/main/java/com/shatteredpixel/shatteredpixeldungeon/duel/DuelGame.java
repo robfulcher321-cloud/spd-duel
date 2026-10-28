@@ -1322,7 +1322,8 @@ public class DuelGame {
 	/** Is it my turn now? Called by the director when it has nothing else to do. */
 	static boolean shouldStartMyTurn() {
 		Player me = me();
-		return active && !over && !myTurn && current == myId && me != null && me.alive;
+		return active && !over && !myTurn && current == myId && me != null && me.alive
+				&& Dungeon.hero != null && Dungeon.hero.isAlive();
 	}
 
 	static DuelController controller() {
@@ -1372,11 +1373,17 @@ public class DuelGame {
 		b.put("who", myId);
 		DuelNet.broadcast(b);
 		DuelTestDriver.progress("I was knocked out");
-		myTurn = false;
+		//out right now, not a moment later: otherwise a turn handover in the same instant can
+		//give the turn to a hero that's already dead, and this screen freezes
+		synchronized (TURN_LOCK) {
+			me.alive = false;
+			myTurn = false;
+			if (current == myId) current = nextAlive(myId);
+		}
 		Game.runOnRenderThread(new Callback() {
 			@Override
 			public void call() {
-				playerOut(myId, false);
+				checkOver();
 				if (!over) {
 					GameScene.show(new WndDuelResult("Knocked out",
 							"You're out of this match. Keep watching to see who wins, or leave.", true));
