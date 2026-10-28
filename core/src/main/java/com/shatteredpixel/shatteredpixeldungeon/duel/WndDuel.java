@@ -93,6 +93,11 @@ public class WndDuel extends WndOptions {
 		Game.scene().addToFront(w);
 	}
 
+	/** Some window I opened later than this one is still on screen (so it's covering it). */
+	static boolean windowAbove(Window w) {
+		return lastShown != null && lastShown != w && lastShown.parent != null;
+	}
+
 	/** A hero picker (or its loadout screen) is still open. */
 	static boolean pickerOpen() {
 		return lastShown != null && lastShown.parent != null && !(lastShown instanceof WndLobby);
@@ -203,10 +208,12 @@ public class WndDuel extends WndOptions {
 
 	static void pickTestClass(final boolean endgame) {
 		final HeroClass[] classes = HeroClass.values();
-		String[] labels = new String[classes.length];
+		final int RANDOM = classes.length;
+		String[] labels = new String[classes.length + 1];
 		for (int i = 0; i < classes.length; i++) {
 			labels[i] = Messages.capitalize(classes[i].title());
 		}
+		labels[RANDOM] = "Random - mystery fighter";
 		String desc = endgame
 				? "Level " + DuelGame.ENDGAME_LEVEL + ", every talent filled in, class weapon +10, class armour +10 " +
 				  "with its ability fully charged, 18 strength, maxed class artifact, three healing potions. " +
@@ -219,7 +226,16 @@ public class WndDuel extends WndOptions {
 
 			@Override
 			protected void onInfo(int index) {
-				DuelInfo.heroClass(classes[index]);
+				if (index == RANDOM) {
+					DuelInfo.message(DuelIcons.mystery(), "Mystery fighter",
+							"A random class" + (endgame ? " with a random subclass and armour ability" : "") +
+							", random gear (weapon, enchantment, glyph, ring, two wands, maybe a different " +
+							"artifact) and five random items from potions, scrolls, seeds and stones.\n\n" +
+							"Everyone, you included, sees a ? until the match starts. Same upgrade levels as " +
+							"any other " + (endgame ? "endgame" : "mid-game") + " fighter.");
+				} else {
+					DuelInfo.heroClass(classes[index]);
+				}
 			}
 
 			@Override
@@ -227,12 +243,21 @@ public class WndDuel extends WndOptions {
 
 			@Override
 			protected Image getIcon(int index) {
-				return DuelIcons.hero(classes[index], endgame ? 6 : 3);
+				return index == RANDOM ? DuelIcons.mystery() : DuelIcons.hero(classes[index], endgame ? 6 : 3);
 			}
 
 			@Override
 			protected void onSelect(int index) {
-				if (endgame) {
+				if (index == RANDOM) {
+					try {
+						DuelGame.prepareMysteryHero(endgame);
+					} catch (Exception e) {
+						ShatteredPixelDungeon.reportException(e);
+						show(new WndOptions("Couldn't make fighter", "Something went wrong rolling a mystery fighter.", "OK"));
+						return;
+					}
+					heroReady();
+				} else if (endgame) {
 					pickSubclass(classes[index]);
 				} else {
 					build(classes[index], null, null);
@@ -358,6 +383,8 @@ public class WndDuel extends WndOptions {
 			refresh -= Game.elapsed;
 			if (refresh <= 0) {
 				refresh = 0.5f;
+				//don't redraw under the "Enter IP" box: new rows would steal its taps
+				if (windowAbove(this)) return;
 				ArrayList<DuelNet.FoundHost> hosts = DuelNet.foundHosts();
 				StringBuilder key = new StringBuilder();
 				for (DuelNet.FoundHost h : hosts) key.append(h.ip).append(h.label).append(';');
@@ -401,11 +428,12 @@ public class WndDuel extends WndOptions {
 			for (final DuelNet.FoundHost h : hosts) {
 				final boolean full = h.players() >= h.maxPlayers();
 				HeroClass cls = HeroClass.WARRIOR;
+				boolean mystery = "MYSTERY".equals(h.heroClass());
 				try { cls = HeroClass.valueOf(h.heroClass()); } catch (Exception ignored) {}
 				String label = h.hostName() + "'s game" + (full ? "  (full)" : "")
 						+ "\n" + h.hero() + "  -  " + h.players() + "/" + h.maxPlayers() + " players"
 						+ (h.mode().isEmpty() ? "" : "  -  " + h.mode());
-				DuelIcons.Row b = new DuelIcons.Row(label, DuelIcons.hero(cls, h.armorTier()), null) {
+				DuelIcons.Row b = new DuelIcons.Row(label, mystery ? DuelIcons.mystery() : DuelIcons.hero(cls, h.armorTier()), null) {
 					@Override
 					protected void onClick() {
 						if (!full) connect(h.ip);

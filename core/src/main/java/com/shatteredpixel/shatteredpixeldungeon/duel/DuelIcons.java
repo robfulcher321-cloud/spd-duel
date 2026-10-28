@@ -85,6 +85,11 @@ public class DuelIcons {
 		return HeroSprite.avatar(cls, armorTier);
 	}
 
+	/** The "?" shown for a mystery fighter. */
+	public static Image mystery() {
+		return new ItemSprite(ItemSpriteSheet.SOMETHING);
+	}
+
 	public static Image random() {
 		return Icons.get(Icons.SHUFFLE);
 	}

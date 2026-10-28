@@ -152,6 +152,9 @@ public class DuelSelfTest extends Gizmo {
 				WndLobby l = new WndLobby(true, null);
 				Game.scene().addToFront(l);
 				DuelGame.hostLobby(l);
+				DuelGame.prepareMysteryHero(false);
+				DuelGame.heroChanged();
+				if (!DuelGame.me().mystery) throw new RuntimeException("mystery fighter not marked");
 			}
 		});
 		add("lobby, choosing a hero", true, new Runnable() {

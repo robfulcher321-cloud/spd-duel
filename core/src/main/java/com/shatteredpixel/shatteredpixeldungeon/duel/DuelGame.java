@@ -76,6 +76,12 @@ public class DuelGame {
 		public String name;          //their hero, e.g. "Berserker (lvl 30)"
 		public String pname = "";    //the player's own name
 		public boolean picking;      //choosing a new hero in the lobby
+		public boolean mystery;      //random fighter: shown as "?" until the match starts
+
+		/** What the lobby shows for their hero. */
+		public String heroLabel() {
+			return mystery ? "Mystery fighter (lvl " + lvl + ")" : name;
+		}
 		public HeroClass cls = HeroClass.WARRIOR;
 		public int tier;
 		public int lvl;
@@ -95,6 +101,7 @@ public class DuelGame {
 			b.put("team", team);
 			b.put("pname", pname);
 			b.put("picking", picking);
+			b.put("mystery", mystery);
 			if (withHero && hero != null) b.put("hero", hero);
 			return b;
 		}
@@ -109,6 +116,7 @@ public class DuelGame {
 			p.team = b.getInt("team");
 			p.pname = b.getString("pname");
 			p.picking = b.getBoolean("picking");
+			p.mystery = b.getBoolean("mystery");
 			if (b.contains("hero")) p.hero = b.getBundle("hero");
 			return p;
 		}
@@ -187,6 +195,26 @@ public class DuelGame {
 	}
 
 	private static HeroRecipe recipe;
+
+	/**
+	 * Mystery fighter: random class (and subclass + armour ability at endgame), random gear and
+	 * five random items. Nobody, me included, sees what it is until the match starts. A new
+	 * lobby rolls a new one.
+	 */
+	public static void prepareMysteryHero(final boolean endgame) {
+		HeroClass cls = com.watabou.utils.Random.element(HeroClass.values());
+		DuelLoadout loadout = DuelLoadout.randomFor(endgame);
+		if (endgame) {
+			prepareEndgameHero(cls, com.watabou.utils.Random.element(cls.subClasses()),
+					com.watabou.utils.Random.element(cls.armorAbilities()), loadout);
+		} else {
+			prepareTestHero(cls, loadout);
+		}
+		recipe = new HeroRecipe() {
+			public void build() { prepareMysteryHero(endgame); }
+		};
+		myHello.put("mystery", true);
+	}
 
 	/** Before hosting/joining: build my hero again from my last choice (or a default fighter). */
 	public static void rebuildMyHero() {
@@ -421,8 +449,8 @@ public class DuelGame {
 	/** What the Join screen shows about my lobby: name|class|armour tier|hero|players|max|mode. */
 	private static String beaconText() {
 		Player me = me();
-		String hero = me != null ? me.name : myLabel();
-		String cls = me != null && me.cls != null ? me.cls.name() : "WARRIOR";
+		String hero = me != null ? me.heroLabel() : myLabel();
+		String cls = me != null && me.mystery ? "MYSTERY" : me != null && me.cls != null ? me.cls.name() : "WARRIOR";
 		int tier = me != null ? me.tier : 0;
 		return playerName() + "|" + cls + "|" + tier + "|" + hero.replace("|", "") + "|"
 				+ players().size() + "|" + MAX_PLAYERS + "|" + (mode == MODE_TEAMS ? "Teams" : "Free-for-all");
@@ -437,6 +465,7 @@ public class DuelGame {
 		p.lvl = hello.getInt("lvl");
 		p.hero = hello.getBundle("hero");
 		p.pname = hello.getString("pname");
+		p.mystery = hello.getBoolean("mystery");
 		return p;
 	}
 
@@ -470,6 +499,7 @@ public class DuelGame {
 				me.lvl = fresh.lvl;
 				me.hero = fresh.hero;
 				me.pname = fresh.pname;
+				me.mystery = fresh.mystery;
 				me.picking = false;
 			}
 			broadcastLobby();
@@ -482,6 +512,7 @@ public class DuelGame {
 			b.put("lvl", myHello.getInt("lvl"));
 			b.put("name", myHello.getString("name"));
 			b.put("pname", myHello.getString("pname"));
+			b.put("mystery", myHello.getBoolean("mystery"));
 			DuelNet.send(DuelNet.HOST_PEER, b);
 		}
 		DuelTestDriver.log("I changed my hero to " + myHello.getString("name"));
@@ -678,6 +709,7 @@ public class DuelGame {
 				p.lvl = msg.getInt("lvl");
 				p.name = msg.getString("name");
 				p.pname = msg.getString("pname");
+				p.mystery = msg.getBoolean("mystery");
 				p.picking = false;
 				DuelTestDriver.log("lobby: player " + peer + " changed hero to " + p.name);
 				broadcastLobby();
@@ -739,6 +771,8 @@ public class DuelGame {
 
 	// ------------------------------------------------------------------ starting the match
 
+	static final ArrayList<String> reveals = new ArrayList<>();
+
 	private static void beginMatch(Bundle start) {
 		if (!inLobby) return;
 
@@ -768,6 +802,15 @@ public class DuelGame {
 		DuelMirror.reset();
 		DuelFx.install();
 		GameLog.wipe();
+		//mystery fighters are revealed once the arena is on screen
+		synchronized (reveals) {
+			reveals.clear();
+			for (Player p : roster) {
+				if (!p.mystery) continue;
+				reveals.add(p.id == myId ? "Your mystery fighter is: " + p.name
+						: p.who() + "'s mystery fighter is: " + p.name);
+			}
+		}
 		Dungeon.droppedItems = new SparseArray<>();
 		InterlevelScene.mode = InterlevelScene.Mode.NONE;
 

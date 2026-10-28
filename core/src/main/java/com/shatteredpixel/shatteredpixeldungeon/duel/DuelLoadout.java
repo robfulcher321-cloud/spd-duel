@@ -50,6 +50,31 @@ public class DuelLoadout {
 	public boolean keepClassArtifact = true;
 	public Class<?> artifact;       //used when keepClassArtifact is false; null = none
 	public final Class<?>[] consumables = new Class<?>[3]; //null = random
+	public int extraConsumables = 0;  //more random ones on top (the mystery fighter gets 2)
+
+	/** Everything random, for the mystery fighter: gear suited to the stage and 5 random items. */
+	public static DuelLoadout randomFor(boolean endgame) {
+		DuelLoadout l = new DuelLoadout();
+		ArrayList<Class<?>> wep = new ArrayList<>();
+		Generator.Category[] tiers = endgame
+				? new Generator.Category[]{Generator.Category.WEP_T3, Generator.Category.WEP_T4, Generator.Category.WEP_T5}
+				: new Generator.Category[]{Generator.Category.WEP_T2, Generator.Category.WEP_T3};
+		for (Generator.Category c : tiers) for (Class<?> cl : c.classes) wep.add(cl);
+		l.weapon = Random.element(wep);
+		l.enchant = Random.element(enchants());
+		l.glyph = Random.element(glyphs());
+		l.ring = Random.element(of(Generator.Category.RING));
+		ArrayList<Class<?>> wands = of(Generator.Category.WAND);
+		l.wand1 = Random.element(wands);
+		wands.remove(l.wand1);
+		l.wand2 = Random.element(wands);
+		if (Random.Int(2) == 0) {
+			l.keepClassArtifact = false;
+			l.artifact = Random.element(of(Generator.Category.ARTIFACT));
+		}
+		l.extraConsumables = 2;
+		return l;
+	}
 
 	/** Remembered while the app is open, so a rematch starts from the same picks. */
 	public static DuelLoadout last = new DuelLoadout();
@@ -214,9 +239,12 @@ public class DuelLoadout {
 			}
 		}
 
-		//three consumables
+		//three consumables (plus any extra random ones)
 		ArrayList<Class<?>> pool = consumablePool();
-		for (Class<?> c : consumables) {
+		ArrayList<Class<?>> picks = new ArrayList<>();
+		for (Class<?> c : consumables) picks.add(c);
+		for (int i = 0; i < extraConsumables; i++) picks.add(null);
+		for (Class<?> c : picks) {
 			Class<?> pick = c != null ? c : Random.element(pool);
 			try {
 				Item it = (Item) Reflection.newInstance(pick);

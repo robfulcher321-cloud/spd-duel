@@ -131,9 +131,9 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 				if (p.id == 0) label += "  - host";
 				if (p.id == DuelGame.myId()) label += "  (you)";
 				if (teams) label = (p.team == 0 ? "[A] " : "[B] ") + label;
-				label += "\n" + (p.picking ? "choosing a hero..." : p.name);
+				label += "\n" + (p.picking ? "choosing a hero..." : p.heroLabel());
 
-				DuelIcons.Row row = new DuelIcons.Row(label, DuelIcons.hero(p.cls, p.tier), null) {
+				DuelIcons.Row row = new DuelIcons.Row(label, p.mystery ? DuelIcons.mystery() : DuelIcons.hero(p.cls, p.tier), null) {
 					@Override
 					protected void onClick() {
 						if (host && DuelGame.mode() == DuelGame.MODE_TEAMS) DuelGame.toggleTeam(p.id);
@@ -212,19 +212,39 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 		if (DuelGame.amPicking() && !WndDuel.pickerOpen()) {
 			DuelGame.setPicking(false);
 		}
+		//changes that came in while a picker was on top are drawn once it's gone
+		if (dirty && !WndDuel.windowAbove(this)) {
+			dirty = false;
+			rebuild();
+		}
 	}
 
 	// ------------------------------------------------------------- lobby events (render thread)
 
+	/**
+	 * A lobby change arrived. If a hero picker is open on top, redrawing now would put fresh
+	 * lobby buttons in front of the picker's (they'd steal taps), so wait until it's closed.
+	 */
+	private boolean dirty = false;
+
+	private void refresh() {
+		if (parent == null) return;
+		if (WndDuel.windowAbove(this)) {
+			dirty = true;
+		} else {
+			rebuild();
+		}
+	}
+
 	@Override
 	public void onLobbyChanged() {
-		if (parent != null) rebuild();
+		refresh();
 	}
 
 	@Override
 	public void onStatus(String text) {
 		status = text;
-		if (parent != null) rebuild();
+		refresh();
 	}
 
 	@Override

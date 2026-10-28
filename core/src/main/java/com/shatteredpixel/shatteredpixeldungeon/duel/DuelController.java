@@ -107,6 +107,14 @@ public class DuelController extends Actor {
 			super.update();
 			if (!DuelGame.active()) return;
 
+			synchronized (DuelGame.reveals) {
+				for (String r : DuelGame.reveals) {
+					GLog.h("%s", r);
+					DuelTestDriver.log("REVEAL: " + r);
+				}
+				DuelGame.reveals.clear();
+			}
+
 			if (playing != null) {
 				if (playing.update()) return; //still animating
 				int from = playing.from;

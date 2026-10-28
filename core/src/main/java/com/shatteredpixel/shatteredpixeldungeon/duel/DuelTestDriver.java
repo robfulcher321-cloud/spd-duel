@@ -201,16 +201,23 @@ public class DuelTestDriver {
 		}
 
 		//joiner 1: change hero in the lobby, like a player tapping "Change hero / loadout"
-		if ("1".equals(env("SPD_DUELSEAT", "")) && DuelGame.inLobby() && DuelGame.me() != null && changeStep < 3) {
+		//joiner 2: pick a random endgame mystery fighter
+		String seatNo = env("SPD_DUELSEAT", "");
+		if (("1".equals(seatNo) || "2".equals(seatNo)) && DuelGame.inLobby() && DuelGame.me() != null && changeStep < 3) {
 			changeStep++;
 			if (changeStep == 1) {
 				DuelGame.setPicking(true);
 				log("LOBBY: opening the hero picker");
 			} else if (changeStep == 3) {
-				DuelGame.prepareTestHero(HeroClass.HUNTRESS, new DuelLoadout());
+				if ("1".equals(seatNo)) {
+					DuelGame.prepareTestHero(HeroClass.HUNTRESS, new DuelLoadout());
+				} else {
+					DuelGame.prepareMysteryHero(true);
+				}
 				DuelGame.heroChanged();
 				DuelGame.setPicking(false);
-				log("LOBBY: changed hero to " + Dungeon.hero.heroClass);
+				log("LOBBY: changed hero to " + Dungeon.hero.heroClass + " " + Dungeon.hero.subClass
+						+ (DuelGame.me() != null ? "" : "") + " with " + Dungeon.hero.belongings.backpack.items.size() + " backpack items");
 			}
 			return;
 		}
