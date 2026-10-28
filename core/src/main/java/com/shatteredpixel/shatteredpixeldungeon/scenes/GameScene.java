@@ -781,6 +781,12 @@ public class GameScene extends PixelScene {
 		//SPD Duel: plays other players' turns back on this screen
 		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.active()) {
 			add(new com.shatteredpixel.shatteredpixeldungeon.duel.DuelController.Director());
+			//chat button, tucked under the menu buttons on the right
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelChat.HudButton chat =
+					new com.shatteredpixel.shatteredpixeldungeon.duel.DuelChat.HudButton();
+			chat.camera = uiCamera;
+			chat.setRect(menu.right() - 34, menu.bottom() + 22, 34, 14);
+			add(chat);
 		}
 
 		//re-show WndResurrect if needed

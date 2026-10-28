@@ -53,11 +53,15 @@ public class DuelSync {
 	}
 
 	static Bundlable unpack(Bundle w) {
+		boolean was = DuelGame.decodingForeign;
+		DuelGame.decodingForeign = true;
 		try {
 			return w.get("x");
 		} catch (Exception e) {
 			DuelTestDriver.log("couldn't unpack: " + e);
 			return null;
+		} finally {
+			DuelGame.decodingForeign = was;
 		}
 	}
 

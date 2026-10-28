@@ -134,6 +134,13 @@ public class AndroidLauncher extends AndroidApplication {
 
 		//SPD Duel: in-game updates
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelUpdate.installer = new AndroidDuelInstaller(this);
+		//SPD Duel: keep the app alive (foreground service) while a lobby or match is open
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.keepAlive = new com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.KeepAlive() {
+			@Override
+			public void set(boolean on) {
+				DuelKeepAliveService.set(getApplicationContext(), on);
+			}
+		};
 		//SPD Duel: keep Wi-Fi broadcast packets while the Join screen is looking for hosts
 		final android.content.Context appContext = getApplicationContext();
 		com.shatteredpixel.shatteredpixeldungeon.duel.DuelNet.wifi = new com.shatteredpixel.shatteredpixeldungeon.duel.DuelNet.WifiHook() {

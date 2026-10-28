@@ -32,7 +32,7 @@ import java.util.ArrayList;
  * The pre-match lobby. Everyone sees who has joined and with which hero; the host chooses
  * Free-for-all or Teams, moves players between teams, and starts the match.
  */
-public class WndLobby extends Window implements DuelGame.LobbyListener {
+public class WndLobby extends Window implements DuelGame.LobbyListener, DuelChat.Watcher {
 
 	private static final int WIDTH_P = 146;
 	private static final int WIDTH_L = 190;
@@ -49,6 +49,7 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 		super();
 		this.host = host;
 		this.status = status;
+		DuelChat.watch(this);
 		rebuild();
 	}
 
@@ -130,6 +131,7 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 				String label = p.who();
 				if (p.id == 0) label += "  - host";
 				if (p.id == DuelGame.myId()) label += "  (you)";
+				if (p.away) label += "  - away";
 				if (teams) label = (p.team == 0 ? "[A] " : "[B] ") + label;
 				label += "\n" + (p.picking ? "choosing a hero..." : p.heroLabel());
 
@@ -185,6 +187,23 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 			y = text("Waiting for the host to start the match...", 6, y, 0xAAAAAA).bottom() + 4;
 		}
 
+		//---- chat: the latest few lines, and a button for the full chat
+		ArrayList<DuelChat.Line> chat = DuelChat.lines();
+		for (int i = Math.max(0, chat.size() - 3); i < chat.size(); i++) {
+			DuelChat.Line l = chat.get(i);
+			y = text(l.name + ": " + l.text, 6, y, l.from == DuelGame.myId() ? 0xFFFF88 : 0xDDDDDD).bottom() + 1;
+		}
+		RedButton chatBtn = new RedButton(DuelChat.unread > 0 ? "Chat (" + DuelChat.unread + " new)" : "Chat", 7) {
+			@Override
+			protected void onClick() {
+				WndDuel.show(new DuelChat.WndChat());
+			}
+		};
+		chatBtn.setRect(0, y + 1, w, 16);
+		add(chatBtn);
+		parts.add(chatBtn);
+		y = chatBtn.bottom() + 3;
+
 		RedButton leave = new RedButton("Leave") {
 			@Override
 			protected void onClick() {
@@ -239,6 +258,17 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 	@Override
 	public void onLobbyChanged() {
 		refresh();
+	}
+
+	@Override
+	public void chatChanged() {
+		refresh();
+	}
+
+	@Override
+	public void destroy() {
+		DuelChat.unwatch(this);
+		super.destroy();
 	}
 
 	@Override

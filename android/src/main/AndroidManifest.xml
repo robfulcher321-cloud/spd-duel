@@ -14,6 +14,10 @@
 	<!--SPD Duel: lets the Join screen hear hosts announcing themselves on Wi-Fi-->
 	<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 	<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+	<!--SPD Duel: keep a lobby/match running while you switch to another app-->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
 
 	<!--Auto-generated permission that isn't needed-->
 	<uses-permission android:name="${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" tools:node="remove" />
@@ -47,6 +51,10 @@
 		<activity
 			android:name=".AndroidMissingNativesHandler">
 		</activity>
+		<service
+			android:name=".DuelKeepAliveService"
+			android:exported="false"
+			android:foregroundServiceType="connectedDevice" />
 	</application>
 
 </manifest>

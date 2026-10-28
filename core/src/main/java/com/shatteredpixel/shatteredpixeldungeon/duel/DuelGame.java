@@ -77,6 +77,7 @@ public class DuelGame {
 		public String pname = "";    //the player's own name
 		public boolean picking;      //choosing a new hero in the lobby
 		public boolean mystery;      //random fighter: shown as "?" until the match starts
+		public volatile boolean away; //switched to another app
 
 		/** What the lobby shows for their hero. */
 		public String heroLabel() {
@@ -158,6 +159,60 @@ public class DuelGame {
 
 	public static Player me() {
 		return player(myId);
+	}
+
+	// ------------------------------------------------------------------ staying alive in the background
+
+	/**
+	 * Android: keeps the app running (with a "match in progress" notification) while a lobby or
+	 * match is on, so switching to another app doesn't get the game closed by the system.
+	 */
+	public interface KeepAlive {
+		void set(boolean on);
+	}
+
+	public static volatile KeepAlive keepAlive;
+
+	private static void keepAlive(boolean on) {
+		KeepAlive k = keepAlive;
+		if (k == null) return;
+		try {
+			k.set(on);
+		} catch (Throwable t) {
+			DuelTestDriver.log("keep-alive failed: " + t);
+		}
+	}
+
+	private static volatile boolean pausedNow = false;
+
+	/** The app went to the background (or came back). The others are told, so they know why it's quiet. */
+	public static void appPaused(boolean paused) {
+		if (pausedNow == paused) return;
+		pausedNow = paused;
+		if (!(inLobby || (active && !over))) return;
+		Bundle b = new Bundle();
+		b.put("type", "away");
+		b.put("who", myId);
+		b.put("on", paused);
+		if (host) DuelNet.broadcast(b);
+		else DuelNet.send(DuelNet.HOST_PEER, b);
+	}
+
+	private static void awayChanged(Bundle msg) {
+		final Player p = player(msg.getInt("who"));
+		if (p == null) return;
+		p.away = msg.getBoolean("on");
+		DuelTestDriver.log("player " + p.id + (p.away ? " switched away" : " is back"));
+		Game.runOnRenderThread(new Callback() {
+			@Override
+			public void call() {
+				if (active && !over) {
+					if (p.away) GLog.w("%s", p.who() + " switched to another app. The match waits for them.");
+					else GLog.i("%s", p.who() + " is back.");
+				}
+			}
+		});
+		lobbyChanged();
 	}
 
 	// ------------------------------------------------------------------ my name
@@ -409,6 +464,7 @@ public class DuelGame {
 		current = 0;
 		myTurn = false;
 		events.clear();
+		DuelChat.reset();
 		synchronized (inflicted) {
 			inflicted.clear();
 		}
@@ -417,6 +473,7 @@ public class DuelGame {
 	public static void hostLobby(LobbyListener l) {
 		resetState();
 		amPicking = false;
+		keepAlive(true);
 		host = true;
 		inLobby = true;
 		lobby = l;
@@ -433,6 +490,7 @@ public class DuelGame {
 	public static void joinLobby(String ip, LobbyListener l) {
 		resetState();
 		amPicking = false;
+		keepAlive(true);
 		host = false;
 		inLobby = true;
 		lobby = l;
@@ -441,6 +499,7 @@ public class DuelGame {
 
 	public static void cancelLobby() {
 		amPicking = false;
+		keepAlive(false);
 		inLobby = false;
 		lobby = null;
 		DuelNet.close();
@@ -612,6 +671,7 @@ public class DuelGame {
 
 	private static void lobbyFail(final String reason) {
 		amPicking = false;
+		keepAlive(false);
 		final LobbyListener l = lobby;
 		inLobby = false;
 		lobby = null;
@@ -679,6 +739,17 @@ public class DuelGame {
 
 	private static void handle(int peer, Bundle msg) {
 		String type = msg.getString("type");
+
+		if ("chat".equals(type)) {
+			if (host) DuelNet.broadcastExcept(peer, msg);
+			DuelChat.received(msg);
+			return;
+		}
+		if ("away".equals(type)) {
+			if (host) DuelNet.broadcastExcept(peer, msg);
+			awayChanged(msg);
+			return;
+		}
 
 		if ("hello".equals(type) && host) {
 			if (msg.getInt("protocol") != PROTOCOL) {
@@ -843,9 +914,28 @@ public class DuelGame {
 		Game.switchScene(GameScene.class);
 	}
 
+	/**
+	 * True while unpacking another player's hero, buffs or creatures. Their buffs' action
+	 * buttons (berserk, freerun, combo...) belong to them, not to my screen.
+	 */
+	static volatile boolean decodingForeign = false;
+
+	public static boolean foreignAction(Object action) {
+		if (decodingForeign) return true;
+		if (!(action instanceof com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff)) return false;
+		if (!active && !inLobby) return false;
+		com.shatteredpixel.shatteredpixeldungeon.actors.Char t = ((com.shatteredpixel.shatteredpixeldungeon.actors.buffs.Buff) action).target;
+		return t != null && t != Dungeon.hero;
+	}
+
 	/** Turns a shared hero back into a Hero object (used only for its defence stats). */
 	private static Hero heroFrom(Bundle heroBundle) {
 		if (heroBundle == null) return null;
+		//unpacking their hero puts their items in "their" quickslots, which are really mine: keep mine
+		com.shatteredpixel.shatteredpixeldungeon.items.Item[] myQuickslots =
+				new com.shatteredpixel.shatteredpixeldungeon.items.Item[com.shatteredpixel.shatteredpixeldungeon.QuickSlot.SIZE];
+		for (int i = 0; i < myQuickslots.length; i++) myQuickslots[i] = Dungeon.quickslot.getItem(i);
+		decodingForeign = true;
 		try {
 			Bundle wrapper = new Bundle();
 			wrapper.put("h", heroBundle);
@@ -853,6 +943,12 @@ public class DuelGame {
 		} catch (Exception e) {
 			ShatteredPixelDungeon.reportException(e);
 			return null;
+		} finally {
+			decodingForeign = false;
+			for (int i = 0; i < myQuickslots.length; i++) {
+				if (myQuickslots[i] == null) Dungeon.quickslot.clearSlot(i);
+				else Dungeon.quickslot.setSlot(i, myQuickslots[i]);
+			}
 		}
 	}
 
@@ -1279,6 +1375,7 @@ public class DuelGame {
 		controller = null;
 		lobby = null;
 		incoming.clear();
+		keepAlive(false);
 		DuelFx.uninstall();
 		DuelMirror.reset();
 

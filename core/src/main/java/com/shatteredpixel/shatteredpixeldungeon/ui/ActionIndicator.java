@@ -152,6 +152,8 @@ public class ActionIndicator extends Tag {
 	}
 
 	public static void setAction(Action action){
+		//SPD Duel: copies of other players' buffs (berserk, momentum...) must not take over my button
+		if (com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.foreignAction(action)) return;
 		synchronized (ActionIndicator.class) {
 			ActionIndicator.action = action;
 			refresh();

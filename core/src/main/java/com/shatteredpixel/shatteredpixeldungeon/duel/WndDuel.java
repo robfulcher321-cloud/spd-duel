@@ -88,7 +88,7 @@ public class WndDuel extends WndOptions {
 
 	private static Window lastShown;
 
-	private static void show(Window w) {
+	static void show(Window w) {
 		lastShown = w;
 		Game.scene().addToFront(w);
 	}

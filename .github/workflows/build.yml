@@ -80,6 +80,7 @@ jobs:
           cp selftest.log /tmp/log/ 2>/dev/null || true
           cp ffa3_*.log team3_*.log /tmp/log/ 2>/dev/null || true
           cp -r desktop/selftest /tmp/log/screens 2>/dev/null || true
+          mkdir -p /tmp/log/screens && cp selftest/*.png /tmp/log/screens/ 2>/dev/null || true
           echo "result=${{ steps.build.outcome }}" > /tmp/log/status.txt
           echo "selftest=${{ steps.selftest.outcome }}" >> /tmp/log/status.txt
           echo "dueltest=${{ steps.dueltest.outcome }}" >> /tmp/log/status.txt

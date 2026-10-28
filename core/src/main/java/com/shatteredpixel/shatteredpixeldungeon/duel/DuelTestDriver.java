@@ -79,6 +79,25 @@ public class DuelTestDriver {
 	private static boolean configured = false;
 	private static boolean pushed = false;
 	private static boolean threw = false;
+	private static boolean lobbyChatted = false;
+	private static boolean matchChatted = false;
+	private static boolean slotsChecked = false;
+	private static boolean shot = false;
+
+	/** Takes a screenshot a few frames after being added (so everything has drawn). */
+	static class Shot extends com.watabou.noosa.Gizmo {
+		private final String name;
+		private int frames = 0;
+		Shot(String name) { this.name = name; }
+		@Override
+		public void draw() {
+			if (++frames == 4) {
+				DuelSelfTest.writeScreenshot(name);
+				log("screenshot " + name);
+				killAndErase();
+			}
+		}
+	}
 	private static int changeStep = 0;
 	private static int settle = 0;
 	private static boolean imaged = false;
@@ -230,6 +249,11 @@ public class DuelTestDriver {
 					log("not starting yet: " + DuelGame.startProblem());
 					return;
 				}
+				if (!lobbyChatted) {
+					lobbyChatted = true;
+					DuelChat.send("hello from the host");
+					return;
+				}
 				configured = true;
 				if ("2v1".equals(env("SPD_DUELMODE", "ffa"))) {
 					DuelGame.setMode(DuelGame.MODE_TEAMS);
@@ -264,6 +288,29 @@ public class DuelTestDriver {
 			if (d < best) { best = d; target = p.puppet; }
 		}
 		if (target == null) return;
+
+		//my quickslots must only hold my own items
+		if (!slotsChecked) {
+			slotsChecked = true;
+			int mine = 0;
+			for (int i = 0; i < com.shatteredpixel.shatteredpixeldungeon.QuickSlot.SIZE; i++) {
+				com.shatteredpixel.shatteredpixeldungeon.items.Item it = Dungeon.quickslot.getItem(i);
+				if (it == null) continue;
+				if (h.belongings.contains(it)) mine++;
+				else log("QUICKSLOT LEAK: slot " + i + " holds " + it.getClass().getSimpleName() + " that isn't mine");
+			}
+			log("quickslots checked: " + mine + " of my items");
+		}
+
+		//chat mid-match (joiner 2), and a look at the screen (host)
+		if ("2".equals(env("SPD_DUELSEAT", "")) && actions == 2 && !matchChatted) {
+			matchChatted = true;
+			DuelChat.send("gg");
+		}
+		if ("host".equals(mode()) && actions == 5 && !shot) {
+			shot = true;
+			Game.scene().add(new Shot("match_" + env("SPD_DUELMODE", "ffa") + "_host"));
+		}
 
 		//an enemy player's creature right next to me gets hit first
 		for (com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob m : Dungeon.level.mobs.toArray(new com.shatteredpixel.shatteredpixeldungeon.actors.mobs.Mob[0])) {

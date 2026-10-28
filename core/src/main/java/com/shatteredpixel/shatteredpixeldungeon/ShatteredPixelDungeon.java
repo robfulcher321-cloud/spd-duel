@@ -112,6 +112,20 @@ public class ShatteredPixelDungeon extends Game {
 	}
 	
 	@Override
+	//SPD Duel: let the other players know when this phone switches away and back
+	@Override
+	public void pause() {
+		super.pause();
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.appPaused(true);
+	}
+
+	@Override
+	public void resume() {
+		super.resume();
+		com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.appPaused(false);
+	}
+
+	@Override
 	public void resize( int width, int height ) {
 		if (width == 0 || height == 0){
 			return;

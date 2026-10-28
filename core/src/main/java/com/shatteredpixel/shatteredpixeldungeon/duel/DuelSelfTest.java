@@ -323,20 +323,25 @@ public class DuelSelfTest extends Gizmo {
 	public void draw() {
 		super.draw();
 		if (pendingShot != null && frames >= FRAMES_PER_STEP - 2) {
-			try {
-				int w = Gdx.graphics.getBackBufferWidth();
-				int h = Gdx.graphics.getBackBufferHeight();
-				byte[] px = ScreenUtils.getFrameBufferPixels(0, 0, w, h, true);
-				for (int i = 3; i < px.length; i += 4) px[i] = (byte) 255;
-				Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
-				BufferUtils.copy(px, 0, pm.getPixels(), px.length);
-				PixmapIO.writePNG(Gdx.files.local("selftest/" + pendingShot + ".png"), pm);
-				pm.dispose();
-				log("screenshot " + pendingShot);
-			} catch (Throwable t) {
-				log("screenshot failed: " + t);
-			}
+			writeScreenshot(pendingShot);
+			log("screenshot " + pendingShot);
 			pendingShot = null;
+		}
+	}
+
+	/** Saves what's on screen right now as selftest/NAME.png (render thread, during draw). */
+	static void writeScreenshot(String name) {
+		try {
+			int w = Gdx.graphics.getBackBufferWidth();
+			int h = Gdx.graphics.getBackBufferHeight();
+			byte[] px = ScreenUtils.getFrameBufferPixels(0, 0, w, h, true);
+			for (int i = 3; i < px.length; i += 4) px[i] = (byte) 255;
+			Pixmap pm = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+			BufferUtils.copy(px, 0, pm.getPixels(), px.length);
+			PixmapIO.writePNG(Gdx.files.local("selftest/" + name + ".png"), pm);
+			pm.dispose();
+		} catch (Throwable t) {
+			log("screenshot failed: " + t);
 		}
 	}
 
