@@ -42,6 +42,39 @@ public class DuelKeepAliveService extends Service {
 
 	private WifiManager.WifiLock wifiLock;
 
+	private static final String ACTION_QUIT = "com.robfulcher.spdduel.QUIT";
+
+	/** Closes the game for real: tells the others we left, then ends the app. */
+	private void quitGame() {
+		try {
+			com.shatteredpixel.shatteredpixeldungeon.duel.DuelGame.leave();
+		} catch (Throwable ignored) {}
+		if (wifiLock != null && wifiLock.isHeld()) {
+			try { wifiLock.release(); } catch (Exception ignored) {}
+		}
+		new Thread() {
+			@Override
+			public void run() {
+				//a moment for the "left" message to go out
+				try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+				try {
+					if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE);
+					else stopForeground(true);
+				} catch (Throwable ignored) {}
+				stopSelf();
+				android.os.Process.killProcess(android.os.Process.myPid());
+				System.exit(0);
+			}
+		}.start();
+	}
+
+	/** Swiped away from recent apps: the player wants it closed, so close it properly. */
+	@Override
+	public void onTaskRemoved(Intent rootIntent) {
+		quitGame();
+		super.onTaskRemoved(rootIntent);
+	}
+
 	public static void set(Context context, boolean on) {
 		Intent i = new Intent(context, DuelKeepAliveService.class);
 		try {
@@ -59,6 +92,10 @@ public class DuelKeepAliveService extends Service {
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
+		if (intent != null && ACTION_QUIT.equals(intent.getAction())) {
+			quitGame();
+			return START_NOT_STICKY;
+		}
 		NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		if (Build.VERSION.SDK_INT >= 26 && nm != null) {
 			NotificationChannel ch = new NotificationChannel(CHANNEL, "Duel matches", NotificationManager.IMPORTANCE_LOW);
@@ -79,6 +116,12 @@ public class DuelKeepAliveService extends Service {
 				.setSmallIcon(R.drawable.ic_duel_notify)
 				.setOngoing(true)
 				.setContentIntent(pi);
+		//"Quit" button: leave the match and close the game
+		Intent quit = new Intent(this, DuelKeepAliveService.class);
+		quit.setAction(ACTION_QUIT);
+		PendingIntent quitPi = PendingIntent.getService(this, 1, quit,
+				Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+		b.addAction(R.drawable.ic_duel_notify, "Quit", quitPi);
 		Notification n = b.build();
 
 		String status;

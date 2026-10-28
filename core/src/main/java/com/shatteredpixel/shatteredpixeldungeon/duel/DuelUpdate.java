@@ -51,9 +51,15 @@ public class DuelUpdate {
 	}
 
 	/** Called by the title screen. Only checks once per app launch, quietly, off the main thread. */
+	private static long lastCheck = 0;
+
+	/** Checks for a newer build whenever the title screen shows (at most every 2 minutes). */
 	public static void checkOnce() {
-		if (checked || DuelSelfTest.enabled() || DuelTestDriver.enabled()) return;
+		if (DuelSelfTest.enabled() || DuelTestDriver.enabled()) return;
+		long now = System.currentTimeMillis();
+		if (checked && now - lastCheck < 120000) return;
 		checked = true;
+		lastCheck = now;
 
 		Thread t = new Thread("Duel update check") {
 			@Override
