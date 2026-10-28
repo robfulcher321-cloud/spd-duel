@@ -1,0 +1,314 @@
+[Controllers] added manager for application, 1 managers active
+DUELTEST[join2] starting as joiner 2
+DUELTEST[join2] lobby: Connected! Joining the lobby...
+DUELTEST[join2] lobby now has 3 players | HostBot: Berserker (lvl 30) | Bot1: Test Huntress (lvl 12) | Bot2: Test Rogue (lvl 12)
+DUELTEST[join2] LOBBY: opening the hero picker
+DUELTEST[join2] lobby now has 3 players | HostBot: Berserker (lvl 30) | Bot1: Test Huntress (lvl 12) | Bot2: choosing a hero
+[GAME] @@ Badge unlocked: Novice Enchanter (Acquire an item of level 3 or higher).
+DUELTEST[join2] I changed my hero to Warlock (lvl 30)
+DUELTEST[join2] LOBBY: changed hero to MAGE WARLOCK with 7 backpack items
+DUELTEST[join2] lobby now has 3 players | HostBot: Berserker (lvl 30) | Bot1: Test Huntress (lvl 12) | Bot2: Warlock (lvl 30)
+DUELTEST[join2] lobby now has 3 players | HostBot: Berserker (lvl 30) | Bot1: Test Huntress (lvl 12) | Bot2: Warlock (lvl 30)
+DUELTEST[join2] CHAT from HostBot: hello from the host
+DUELTEST[join2] lobby now has 3 players | HostBot: Berserker (lvl 30) | Bot1: Test Huntress (lvl 12) | Bot2: Warlock (lvl 30)
+[GAME] @@ Badge unlocked: Adept Enchanter (Acquire an item of level 6 or higher).
+DUELTEST[join2] match starting: 3 players, mode ffa, I am 2
+[GAME] @@ Your mystery fighter is: Warlock (lvl 30)
+DUELTEST[join2] REVEAL: Your mystery fighter is: Warlock (lvl 30)
+DUELTEST[join2] RECEIVED turn from 0 seq 1
+DUELTEST[join2] playing back turn 1 from 0: [move@188, fx{snd=2}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=0 turnStart=0.0 now=0.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 1
+DUELTEST[join2] playing back turn 1 from 1: [move@30, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=0 turnStart=0.0 now=0.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=0 turnStart=0.0 now=0.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 0.0
+DUELTEST[join2] quickslots checked: 4 of my items
+DUELTEST[join2] my action 1: move | me HP 165/165 at 36 | target HP 165 at 188
+DUELTEST[join2] SENT turn 1: pos 52 hp 165 events [move@52, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=0.0 now=1.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 2
+DUELTEST[join2] playing back turn 2 from 0: [move@171, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=0.0 now=1.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 2
+DUELTEST[join2] playing back turn 2 from 1: [move@29, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=0.0 now=1.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=0.0 now=1.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 1.0
+DUELTEST[join2] STRESS: summoned 2 mirror images
+DUELTEST[join2] my action 2: move | me HP 165/165 at 52 | target HP 165 at 171
+DUELTEST[join2] SENT turn 2: pos 70 hp 165 events [mspawn MirrorImage, mspawn MirrorImage, move@70, mmove@53, mmove@86, fx{emit=4, snd=3}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=1.0 now=2.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 3
+DUELTEST[join2] playing back turn 3 from 0: [move@154, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=1.0 now=2.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 3
+DUELTEST[join2] playing back turn 3 from 1: [throw@56 PotionOfLiquidFlame, fx{anim=1, emit=10, snd=3}]
+DUELTEST[join2] arena now has Fire(8)
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=1.0 now=2.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=1.0 now=2.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 2.0
+DUELTEST[join2] CHAT sent: gg
+[GAME] Bot2: gg
+DUELTEST[join2] my action 3: move | me HP 165/165 at 70 | target HP 165 at 154
+DUELTEST[join2] SENT turn 3: pos 87 hp 165 events [move@87, mmove@71, mmove@103, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=2.0 now=3.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 4
+DUELTEST[join2] playing back turn 4 from 0: [move@137, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=2.0 now=3.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 4
+DUELTEST[join2] playing back turn 4 from 1: [move@28, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=2.0 now=3.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=2.0 now=3.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 3.0
+DUELTEST[join2] my action 4: move | me HP 165/165 at 87 | target HP 165 at 137
+DUELTEST[join2] SENT turn 4: pos 104 hp 165 events [move@104, mmove@88, mmove@120, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=3.0 now=4.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 5
+DUELTEST[join2] playing back turn 5 from 0: [move@121, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=3.0 now=4.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 5
+DUELTEST[join2] playing back turn 5 from 1: [move@27, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=3.0 now=4.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=3.0 now=4.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.0 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 4.0
+DUELTEST[join2] my action 5: attack HostBot | me HP 165/165 at 104 | target HP 165 at 121
+DUELTEST[join2] my action 6: attack HostBot | me HP 165/165 at 104 | target HP 165 at 121
+DUELTEST[join2] SENT turn 5: pos 104 hp 165 events [swing 0, mmove@105, swing 0, swing 0, fx{anim=4, snd=4}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=4.0 now=5.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.41420174 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 6
+DUELTEST[join2] playing back turn 6 from 0: [mdmg 2/17 24, fx{anim=1, snd=2}]
+DUELTEST[join2] my creature MirrorImage took 24
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=2 turnStart=4.0 now=5.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.41420174 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 6
+DUELTEST[join2] playing back turn 6 from 1: [zap@105 WandOfFrost, mdmg 2/15 3, buff 2/15 Chill, fx{anim=1, emit=1, mm=1, snd=2}]
+DUELTEST[join2] my creature MirrorImage took 3
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=2 turnStart=4.0 now=5.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.41420174 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=4.0 now=5.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.41420174 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 5.0
+DUELTEST[join2] my action 7: attack HostBot | me HP 165/165 at 104 | target HP 165 at 121
+DUELTEST[join2] SENT turn 6: pos 104 hp 165 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=5.0 now=6.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 7
+DUELTEST[join2] playing back turn 7 from 0: [dmg 2 26, buff 2 Vulnerable, move@86, push 2@194, fx{jump=1, shake=1, snd=1}]
+[GAME] ** You feel fragile!
+DUELTEST[join2] inflicted on me: Vulnerable
+DUELTEST[join2] I was pushed from 104 to 194
+[GAME] ** You were knocked back!
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=5.0 now=6.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 7
+DUELTEST[join2] playing back turn 7 from 1: [move@26, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=5.0 now=6.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=5.0 now=6.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 6.0
+DUELTEST[join2] my action 8: move | me HP 139/165 at 194 | target HP 165 at 86
+DUELTEST[join2] SENT turn 7: pos 176 hp 139 events [move@176, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=6.0 now=7.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 8
+DUELTEST[join2] playing back turn 8 from 0: [move@104, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=6.0 now=7.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 8
+DUELTEST[join2] playing back turn 8 from 1: [move@25, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=6.0 now=7.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=6.0 now=7.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 7.0
+DUELTEST[join2] my action 9: move | me HP 139/165 at 176 | target HP 165 at 104
+DUELTEST[join2] SENT turn 8: pos 158 hp 139 events [move@158, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=7.0 now=8.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 9
+DUELTEST[join2] playing back turn 9 from 0: [move@122, fx{snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=7.0 now=8.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 9
+DUELTEST[join2] playing back turn 9 from 1: [buff 0 Slow, buff 0 Paralysis, move@41, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=7.0 now=8.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=7.0 now=8.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 8.0
+DUELTEST[join2] my action 10: move | me HP 139/165 at 158 | target HP 165 at 122
+DUELTEST[join2] SENT turn 9: pos 140 hp 139 events [move@140, fx{snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=8.0 now=9.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 10
+DUELTEST[join2] playing back turn 10 from 0: []
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield,Slow,Paralysis]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=8.0 now=9.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 10
+DUELTEST[join2] playing back turn 10 from 1: [self, move@57, fx{emit=1, snd=1}]
+DUELTEST[join2] figure 1 shows buffs: [RejuvenatingStepsCooldown]
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=8.0 now=9.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=8.0 now=9.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.121302605 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 9.0
+DUELTEST[join2] my action 11: attack HostBot | me HP 139/165 at 140 | target HP 165 at 122
+DUELTEST[join2] my action 12: attack HostBot | me HP 139/165 at 140 | target HP 165 at 122
+DUELTEST[join2] SENT turn 10: pos 140 hp 139 events [swing 0, swing 0, dmg 0 10, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=9.0 now=10.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.53550434 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 11
+DUELTEST[join2] playing back turn 11 from 0: [self]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield,Slow]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=2 turnStart=9.0 now=10.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.53550434 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 11
+DUELTEST[join2] playing back turn 11 from 1: [move@73, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: [RejuvenatingStepsCooldown]
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=2 turnStart=9.0 now=10.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.53550434 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=9.0 now=10.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.53550434 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 10.0
+DUELTEST[join2] my action 13: attack HostBot | me HP 139/165 at 140 | target HP 155 at 122
+DUELTEST[join2] SENT turn 11: pos 140 hp 139 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=10.0 now=11.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.24260521 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 12
+DUELTEST[join2] playing back turn 12 from 0: [push 2@158, self, move@140, fx{snd=1}]
+DUELTEST[join2] I was pushed from 140 to 158
+[GAME] ** You were knocked back!
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=10.0 now=11.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.24260521 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 12
+DUELTEST[join2] playing back turn 12 from 1: [move@89, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: [RejuvenatingStepsCooldown]
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=10.0 now=11.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.24260521 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=10.0 now=11.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.24260521 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 11.0
+DUELTEST[join2] my action 14: attack HostBot | me HP 139/165 at 158 | target HP 155 at 140
+DUELTEST[join2] my action 15: attack HostBot | me HP 139/165 at 158 | target HP 155 at 140
+DUELTEST[join2] SENT turn 12: pos 158 hp 139 events [self, swing 0, swing 0, dmg 0 25, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=11.0 now=12.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.65680695 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 13
+DUELTEST[join2] playing back turn 13 from 0: [swing 2, dmg 2 10, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=2 turnStart=11.0 now=12.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.65680695 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 13
+DUELTEST[join2] playing back turn 13 from 1: [move@105, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: [RejuvenatingStepsCooldown]
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=2 turnStart=11.0 now=12.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.65680695 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=11.0 now=12.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.65680695 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 12.0
+DUELTEST[join2] my action 16: attack HostBot | me HP 129/165 at 158 | target HP 130 at 140
+DUELTEST[join2] SENT turn 13: pos 158 hp 129 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=12.0 now=13.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.3639078 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 14
+DUELTEST[join2] playing back turn 14 from 0: [swing 2, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=12.0 now=13.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.3639078 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 14
+DUELTEST[join2] playing back turn 14 from 1: [move@122, fx{snd=1}]
+DUELTEST[join2] figure 1 shows buffs: [RejuvenatingStepsCooldown]
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=12.0 now=13.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.3639078 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=12.0 now=13.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.3639078 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 13.0
+DUELTEST[join2] my action 17: attack HostBot | me HP 129/165 at 158 | target HP 130 at 140
+DUELTEST[join2] SENT turn 14: pos 158 hp 129 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=13.0 now=14.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.07100868 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 15
+DUELTEST[join2] playing back turn 15 from 0: [swing 1, dmg 1 30, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=13.0 now=14.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.07100868 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 15
+DUELTEST[join2] playing back turn 15 from 1: [swing 0, self, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=13.0 now=14.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.07100868 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=13.0 now=14.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.07100868 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 14.0
+DUELTEST[join2] my action 18: attack HostBot | me HP 129/165 at 158 | target HP 130 at 140
+DUELTEST[join2] my action 19: attack HostBot | me HP 129/165 at 158 | target HP 124 at 140
+DUELTEST[join2] SENT turn 15: pos 158 hp 129 events [swing 0, dmg 0 6, swing 0, dmg 0 17, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=14.0 now=15.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.48521042 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 16
+DUELTEST[join2] playing back turn 16 from 0: [swing 1, dmg 1 22, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=2 turnStart=14.0 now=15.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.48521042 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 16
+DUELTEST[join2] playing back turn 16 from 1: [swing 0, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=2 turnStart=14.0 now=15.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.48521042 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=14.0 now=15.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.48521042 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 15.0
+DUELTEST[join2] my action 20: attack HostBot | me HP 130/165 at 158 | target HP 107 at 140
+DUELTEST[join2] SENT turn 16: pos 158 hp 130 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=15.0 now=16.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.19231033 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 17
+DUELTEST[join2] playing back turn 17 from 0: [swing 1, dmg 1 14, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=15.0 now=16.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.19231033 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 17
+DUELTEST[join2] playing back turn 17 from 1: [swing 0, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=1 turnStart=15.0 now=16.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.19231033 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=15.0 now=16.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.19231033 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 16.0
+DUELTEST[join2] my action 21: attack HostBot | me HP 130/165 at 158 | target HP 107 at 140
+DUELTEST[join2] my action 22: attack HostBot | me HP 130/165 at 158 | target HP 82 at 140
+DUELTEST[join2] SENT turn 17: pos 158 hp 130 events [swing 0, dmg 0 25, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=16.0 now=17.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.60651016 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 18
+DUELTEST[join2] playing back turn 18 from 0: [swing 1, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield,ProvokedAngerTracker]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=2 turnStart=16.0 now=17.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.60651016 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] RECEIVED turn from 1 seq 18
+DUELTEST[join2] playing back turn 18 from 1: [swing 0, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] figure 1 shows buffs: []
+DUELTEST[join2] TURN played back from 1: myTurn=false current=2 actions=2 turnStart=16.0 now=17.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.60651016 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=16.0 now=17.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.60651016 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 17.0
+DUELTEST[join2] my action 23: attack HostBot | me HP 130/165 at 158 | target HP 96 at 140
+DUELTEST[join2] SENT turn 18: pos 158 hp 130 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=17.0 now=18.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.31361008 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 19
+DUELTEST[join2] playing back turn 19 from 0: [swing 1, dmg 1 20, self, fx{anim=1, snd=1}]
+DUELTEST[join2] RECEIVED dead from 1
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=1 actions=1 turnStart=17.0 now=18.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.31361008 paralysed=0] processing=true thread=SHPD Render Thread
+[GAME] ** Bot1 (Test Huntress (lvl 12)) was knocked out!
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=17.0 now=18.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.31361008 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 18.0
+DUELTEST[join2] my action 24: attack HostBot | me HP 130/165 at 158 | target HP 96 at 140
+DUELTEST[join2] SENT turn 19: pos 158 hp 130 events [swing 0, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=18.0 now=19.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.020709991 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 20
+DUELTEST[join2] playing back turn 20 from 0: [swing 2, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=2 actions=1 turnStart=18.0 now=19.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.020709991 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=18.0 now=19.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.020709991 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 19.0
+DUELTEST[join2] my action 25: attack HostBot | me HP 130/165 at 158 | target HP 96 at 140
+DUELTEST[join2] my action 26: attack HostBot | me HP 130/165 at 158 | target HP 66 at 140
+DUELTEST[join2] SENT turn 20: pos 158 hp 130 events [swing 0, dmg 0 30, swing 0, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=19.0 now=20.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.43490982 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 21
+DUELTEST[join2] playing back turn 21 from 0: [swing 2, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=2 actions=2 turnStart=19.0 now=20.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.43490982 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=2 turnStart=19.0 now=20.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.43490982 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 20.0
+DUELTEST[join2] my action 27: attack HostBot | me HP 130/165 at 158 | target HP 66 at 140
+DUELTEST[join2] SENT turn 21: pos 158 hp 130 events [swing 0, dmg 0 15, fx{anim=1, snd=1}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=1 turnStart=20.0 now=21.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.14200974 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED turn from 0 seq 22
+DUELTEST[join2] playing back turn 22 from 0: [swing 2, fx{anim=1, snd=1}]
+DUELTEST[join2] figure 0 shows buffs: [WarriorShield]
+DUELTEST[join2] TURN played back from 0: myTurn=false current=2 actions=1 turnStart=20.0 now=21.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.14200974 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] TURN start: myTurn=false current=2 actions=1 turnStart=20.0 now=21.0 controller[waiting=true cooldown=0.0] hero[ready=false cooldown=0.14200974 paralysed=0] processing=true thread=SHPD Render Thread
+DUELTEST[join2] my turn starts at time 21.0
+DUELTEST[join2] my action 28: attack HostBot | me HP 130/165 at 158 | target HP 51 at 140
+DUELTEST[join2] my action 29: attack HostBot | me HP 130/165 at 158 | target HP 18 at 140
+DUELTEST[join2] SENT turn 22: pos 158 hp 130 events [swing 0, dmg 0 33, swing 0, dmg 0 35, fx{anim=2, snd=2}]
+DUELTEST[join2] TURN finish: myTurn=false current=0 actions=2 turnStart=21.0 now=22.0 controller[waiting=false cooldown=0.0] hero[ready=false cooldown=0.55620956 paralysed=0] processing=true thread=SHPD Actor Thread
+DUELTEST[join2] RECEIVED dead from 0
+[GAME] ** HostBot (Berserker (lvl 30)) - host was knocked out!
+DUELTEST[join2] MATCH OVER: won (winners: you)
+DUELTEST[join2] FINAL me(2) pos 158 hp 130 | p0 pos 140 OUT | p1 pos 122 OUT
+DUELTEST[join2] PASS

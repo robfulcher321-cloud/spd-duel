@@ -1,0 +1,4 @@
+result=success
+selftest=success
+dueltest=success
+commit=f9341c154f0dc90d7cde2946592f1cfec6d58953

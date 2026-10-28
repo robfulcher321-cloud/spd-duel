@@ -1,0 +1,372 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :core:processResources NO-SOURCE
+> Task :services:news:shatteredNews:processResources NO-SOURCE
+> Task :services:updates:githubUpdates:processResources NO-SOURCE
+> Task :services:compileJava UP-TO-DATE
+> Task :services:processResources NO-SOURCE
+> Task :services:classes UP-TO-DATE
+> Task :SPD-classes:compileJava UP-TO-DATE
+> Task :services:jar UP-TO-DATE
+> Task :core:compileJava UP-TO-DATE
+> Task :core:classes UP-TO-DATE
+> Task :core:jar UP-TO-DATE
+> Task :SPD-classes:processResources NO-SOURCE
+> Task :SPD-classes:classes UP-TO-DATE
+> Task :SPD-classes:jar UP-TO-DATE
+> Task :desktop:processResources
+> Task :services:news:shatteredNews:compileJava
+> Task :services:updates:githubUpdates:compileJava
+> Task :services:updates:githubUpdates:classes
+> Task :services:news:shatteredNews:classes
+> Task :services:news:shatteredNews:jar
+> Task :services:updates:githubUpdates:jar
+> Task :desktop:compileJava
+> Task :desktop:classes
+
+> Task :desktop:debug
+[Controllers] added manager for application, 1 managers active
+SELFTEST starting, 245 steps
+SELFTEST step 1/245: duel menu
+SELFTEST title screen rebuilt, re-attaching
+SELFTEST step 1/245: duel menu
+SELFTEST screenshot duel_menu
+SELFTEST step 2/245: join list
+SELFTEST screenshot join_list
+SELFTEST step 3/245: lobby
+[GAME] @@ Badge unlocked: Novice Researcher (Fill in 40 catalog entries in your journal).
+SELFTEST screenshot lobby
+SELFTEST step 4/245: lobby, choosing a hero
+SELFTEST screenshot lobby_choosing_a_hero
+SELFTEST step 5/245: lobby leave confirmation
+SELFTEST screenshot lobby_leave_confirmation
+SELFTEST step 6/245: leave lobby
+SELFTEST step 7/245: class info WARRIOR
+SELFTEST step 8/245: subclass info BERSERKER
+SELFTEST step 9/245: subclass info GLADIATOR
+SELFTEST step 10/245: ability info WARRIOR HeroicLeap
+SELFTEST screenshot ability_info_WARRIOR_HeroicLeap
+SELFTEST step 11/245: ability info WARRIOR Shockwave
+SELFTEST screenshot ability_info_WARRIOR_Shockwave
+SELFTEST step 12/245: ability info WARRIOR Endure
+SELFTEST screenshot ability_info_WARRIOR_Endure
+SELFTEST step 13/245: class info MAGE
+SELFTEST screenshot class_info_MAGE
+SELFTEST step 14/245: subclass info BATTLEMAGE
+SELFTEST step 15/245: subclass info WARLOCK
+SELFTEST step 16/245: ability info MAGE ElementalBlast
+SELFTEST screenshot ability_info_MAGE_ElementalBlast
+SELFTEST step 17/245: ability info MAGE WildMagic
+SELFTEST screenshot ability_info_MAGE_WildMagic
+SELFTEST step 18/245: ability info MAGE WarpBeacon
+SELFTEST screenshot ability_info_MAGE_WarpBeacon
+SELFTEST step 19/245: class info ROGUE
+SELFTEST step 20/245: subclass info ASSASSIN
+SELFTEST step 21/245: subclass info FREERUNNER
+SELFTEST step 22/245: ability info ROGUE SmokeBomb
+SELFTEST screenshot ability_info_ROGUE_SmokeBomb
+SELFTEST step 23/245: ability info ROGUE DeathMark
+SELFTEST screenshot ability_info_ROGUE_DeathMark
+SELFTEST step 24/245: ability info ROGUE ShadowClone
+SELFTEST screenshot ability_info_ROGUE_ShadowClone
+SELFTEST step 25/245: class info HUNTRESS
+SELFTEST step 26/245: subclass info SNIPER
+SELFTEST step 27/245: subclass info WARDEN
+SELFTEST step 28/245: ability info HUNTRESS SpectralBlades
+SELFTEST screenshot ability_info_HUNTRESS_SpectralBlades
+SELFTEST step 29/245: ability info HUNTRESS NaturesPower
+SELFTEST screenshot ability_info_HUNTRESS_NaturesPower
+SELFTEST step 30/245: ability info HUNTRESS SpiritHawk
+SELFTEST screenshot ability_info_HUNTRESS_SpiritHawk
+SELFTEST step 31/245: class info DUELIST
+SELFTEST step 32/245: subclass info CHAMPION
+SELFTEST step 33/245: subclass info MONK
+SELFTEST step 34/245: ability info DUELIST Challenge
+SELFTEST screenshot ability_info_DUELIST_Challenge
+SELFTEST step 35/245: ability info DUELIST ElementalStrike
+SELFTEST screenshot ability_info_DUELIST_ElementalStrike
+SELFTEST step 36/245: ability info DUELIST Feint
+SELFTEST screenshot ability_info_DUELIST_Feint
+SELFTEST step 37/245: class info CLERIC
+SELFTEST step 38/245: subclass info PRIEST
+SELFTEST step 39/245: subclass info PALADIN
+SELFTEST step 40/245: ability info CLERIC AscendedForm
+SELFTEST screenshot ability_info_CLERIC_AscendedForm
+SELFTEST step 41/245: ability info CLERIC Trinity
+SELFTEST screenshot ability_info_CLERIC_Trinity
+SELFTEST step 42/245: ability info CLERIC PowerOfMany
+SELFTEST screenshot ability_info_CLERIC_PowerOfMany
+SELFTEST step 43/245: class menu (endgame)
+SELFTEST screenshot class_menu_endgame_
+SELFTEST step 44/245: subclass menu
+SELFTEST screenshot subclass_menu
+SELFTEST step 45/245: ability menu
+SELFTEST screenshot ability_menu
+SELFTEST step 46/245: level menu
+SELFTEST screenshot level_menu
+SELFTEST step 47/245: loadout WARRIOR
+SELFTEST watchdog: frame 420
+SELFTEST step 48/245: loadout MAGE
+SELFTEST step 49/245: loadout ROGUE
+SELFTEST screenshot loadout_ROGUE
+SELFTEST step 50/245: loadout HUNTRESS
+SELFTEST step 51/245: loadout DUELIST
+SELFTEST step 52/245: loadout CLERIC
+SELFTEST step 53/245: weapon picker
+SELFTEST screenshot weapon_picker
+SELFTEST step 54/245: item info WornShortsword
+SELFTEST step 55/245: item info MagesStaff
+SELFTEST step 56/245: item info Dagger
+SELFTEST step 57/245: item info Gloves
+SELFTEST step 58/245: item info Rapier
+SELFTEST step 59/245: item info Cudgel
+SELFTEST step 60/245: item info Shortsword
+SELFTEST step 61/245: item info HandAxe
+SELFTEST step 62/245: item info Spear
+SELFTEST step 63/245: item info Quarterstaff
+SELFTEST step 64/245: item info Dirk
+SELFTEST step 65/245: item info Sickle
+SELFTEST step 66/245: item info Pickaxe
+SELFTEST step 67/245: item info Sword
+SELFTEST step 68/245: item info Mace
+SELFTEST step 69/245: item info Scimitar
+SELFTEST step 70/245: item info RoundShield
+SELFTEST step 71/245: item info Sai
+SELFTEST step 72/245: item info Whip
+SELFTEST step 73/245: item info Longsword
+SELFTEST step 74/245: item info BattleAxe
+SELFTEST step 75/245: item info Flail
+SELFTEST step 76/245: item info RunicBlade
+SELFTEST step 77/245: item info AssassinsBlade
+SELFTEST step 78/245: item info Crossbow
+SELFTEST step 79/245: item info Katana
+SELFTEST step 80/245: item info Greatsword
+SELFTEST step 81/245: item info WarHammer
+SELFTEST step 82/245: item info Glaive
+SELFTEST step 83/245: item info Greataxe
+SELFTEST step 84/245: item info Greatshield
+SELFTEST step 85/245: item info Gauntlet
+SELFTEST step 86/245: item info WarScythe
+SELFTEST step 87/245: item info RingOfAccuracy
+SELFTEST step 88/245: item info RingOfArcana
+SELFTEST step 89/245: item info RingOfElements
+SELFTEST step 90/245: item info RingOfEnergy
+SELFTEST step 91/245: item info RingOfEvasion
+SELFTEST step 92/245: item info RingOfForce
+SELFTEST step 93/245: item info RingOfFuror
+SELFTEST step 94/245: item info RingOfHaste
+SELFTEST step 95/245: item info RingOfMight
+SELFTEST step 96/245: item info RingOfSharpshooting
+SELFTEST step 97/245: item info RingOfTenacity
+SELFTEST watchdog: frame 870
+SELFTEST step 98/245: item info RingOfWealth
+SELFTEST step 99/245: item info WandOfMagicMissile
+SELFTEST step 100/245: item info WandOfLightning
+SELFTEST step 101/245: item info WandOfDisintegration
+SELFTEST step 102/245: item info WandOfFireblast
+SELFTEST step 103/245: item info WandOfCorrosion
+SELFTEST step 104/245: item info WandOfBlastWave
+SELFTEST step 105/245: item info WandOfLivingEarth
+SELFTEST step 106/245: item info WandOfFrost
+SELFTEST step 107/245: item info WandOfPrismaticLight
+SELFTEST step 108/245: item info WandOfWarding
+SELFTEST step 109/245: item info WandOfTransfusion
+SELFTEST step 110/245: item info WandOfCorruption
+SELFTEST step 111/245: item info WandOfRegrowth
+SELFTEST step 112/245: item info AlchemistsToolkit
+SELFTEST step 113/245: item info ChaliceOfBlood
+SELFTEST step 114/245: item info CloakOfShadows
+SELFTEST step 115/245: item info DriedRose
+SELFTEST step 116/245: item info EtherealChains
+SELFTEST step 117/245: item info HolyTome
+SELFTEST step 118/245: item info HornOfPlenty
+SELFTEST step 119/245: item info MasterThievesArmband
+SELFTEST step 120/245: item info SandalsOfNature
+SELFTEST step 121/245: item info SkeletonKey
+SELFTEST step 122/245: item info TalismanOfForesight
+SELFTEST step 123/245: item info TimekeepersHourglass
+SELFTEST step 124/245: item info UnstableSpellbook
+SELFTEST step 125/245: item info PotionOfStrength
+SELFTEST step 126/245: item info PotionOfHealing
+SELFTEST step 127/245: item info PotionOfMindVision
+SELFTEST step 128/245: item info PotionOfFrost
+SELFTEST step 129/245: item info PotionOfLiquidFlame
+SELFTEST step 130/245: item info PotionOfToxicGas
+SELFTEST step 131/245: item info PotionOfHaste
+SELFTEST step 132/245: item info PotionOfInvisibility
+SELFTEST step 133/245: item info PotionOfLevitation
+SELFTEST step 134/245: item info PotionOfParalyticGas
+SELFTEST step 135/245: item info PotionOfPurity
+SELFTEST step 136/245: item info PotionOfExperience
+SELFTEST step 137/245: item info ScrollOfUpgrade
+SELFTEST step 138/245: item info ScrollOfIdentify
+SELFTEST step 139/245: item info ScrollOfRemoveCurse
+SELFTEST step 140/245: item info ScrollOfMirrorImage
+SELFTEST step 141/245: item info ScrollOfRecharging
+SELFTEST step 142/245: item info ScrollOfTeleportation
+SELFTEST step 143/245: item info ScrollOfLullaby
+SELFTEST step 144/245: item info ScrollOfMagicMapping
+SELFTEST step 145/245: item info ScrollOfRage
+SELFTEST step 146/245: item info ScrollOfRetribution
+SELFTEST step 147/245: item info ScrollOfTerror
+SELFTEST watchdog: frame 1320
+SELFTEST step 148/245: item info ScrollOfTransmutation
+SELFTEST step 149/245: item info Seed
+SELFTEST step 150/245: item info Seed
+SELFTEST step 151/245: item info Seed
+SELFTEST step 152/245: item info Seed
+SELFTEST step 153/245: item info Seed
+SELFTEST step 154/245: item info Seed
+SELFTEST step 155/245: item info Seed
+SELFTEST step 156/245: item info Seed
+SELFTEST step 157/245: item info Seed
+SELFTEST step 158/245: item info Seed
+SELFTEST step 159/245: item info Seed
+SELFTEST step 160/245: item info Seed
+SELFTEST step 161/245: item info StoneOfEnchantment
+SELFTEST step 162/245: item info StoneOfIntuition
+SELFTEST step 163/245: item info StoneOfDetectMagic
+SELFTEST step 164/245: item info StoneOfFlock
+SELFTEST step 165/245: item info StoneOfShock
+SELFTEST step 166/245: item info StoneOfBlink
+SELFTEST step 167/245: item info StoneOfDeepSleep
+SELFTEST step 168/245: item info StoneOfClairvoyance
+SELFTEST step 169/245: item info StoneOfAggression
+SELFTEST step 170/245: item info StoneOfBlast
+SELFTEST step 171/245: item info StoneOfFear
+SELFTEST step 172/245: item info StoneOfAugmentation
+SELFTEST step 173/245: enchant info Blazing
+SELFTEST step 174/245: enchant info Chilling
+SELFTEST step 175/245: enchant info Kinetic
+SELFTEST step 176/245: enchant info Shocking
+SELFTEST step 177/245: enchant info Venomous
+SELFTEST step 178/245: enchant info Blocking
+SELFTEST step 179/245: enchant info Blooming
+SELFTEST step 180/245: enchant info Eldritch
+SELFTEST step 181/245: enchant info Elastic
+SELFTEST step 182/245: enchant info Lucky
+SELFTEST step 183/245: enchant info Projecting
+SELFTEST step 184/245: enchant info Unstable
+SELFTEST step 185/245: enchant info Vorpal
+SELFTEST step 186/245: enchant info Corrupting
+SELFTEST step 187/245: enchant info Crystal
+SELFTEST step 188/245: enchant info Grim
+SELFTEST step 189/245: enchant info Vampiric
+SELFTEST step 190/245: glyph info Obfuscation
+SELFTEST step 191/245: glyph info Swiftness
+SELFTEST step 192/245: glyph info Viscosity
+SELFTEST step 193/245: glyph info Potential
+SELFTEST step 194/245: glyph info Brimstone
+SELFTEST step 195/245: glyph info Stone
+SELFTEST step 196/245: glyph info Entanglement
+SELFTEST step 197/245: glyph info Repulsion
+SELFTEST watchdog: frame 1770
+SELFTEST step 198/245: glyph info Camouflage
+SELFTEST step 199/245: glyph info Flow
+SELFTEST step 200/245: glyph info Affection
+SELFTEST step 201/245: glyph info AntiMagic
+SELFTEST step 202/245: glyph info Thorns
+SELFTEST step 203/245: build mid-game WARRIOR
+SELFTEST step 204/245: build endgame BERSERKER HeroicLeap
+[GAME] @@ Badge unlocked: Novice Enchanter (Acquire an item of level 3 or higher).
+SELFTEST step 205/245: build endgame BERSERKER Shockwave
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 206/245: build endgame BERSERKER Endure
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 207/245: build endgame GLADIATOR HeroicLeap
+[GAME] @@ Badge unlocked: Adept Researcher (Fill in 80 catalog entries in your journal).
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 208/245: build endgame GLADIATOR Shockwave
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 209/245: build endgame GLADIATOR Endure
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 210/245: build mid-game MAGE
+SELFTEST step 211/245: build endgame BATTLEMAGE ElementalBlast
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 212/245: build endgame BATTLEMAGE WildMagic
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 213/245: build endgame BATTLEMAGE WarpBeacon
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 214/245: build endgame WARLOCK ElementalBlast
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 215/245: build endgame WARLOCK WildMagic
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 216/245: build endgame WARLOCK WarpBeacon
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 217/245: build mid-game ROGUE
+SELFTEST step 218/245: build endgame ASSASSIN SmokeBomb
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 219/245: build endgame ASSASSIN DeathMark
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 220/245: build endgame ASSASSIN ShadowClone
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 221/245: build endgame FREERUNNER SmokeBomb
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 222/245: build endgame FREERUNNER DeathMark
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 223/245: build endgame FREERUNNER ShadowClone
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 224/245: build mid-game HUNTRESS
+SELFTEST step 225/245: build endgame SNIPER SpectralBlades
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge unlocked: Adept Enchanter (Acquire an item of level 6 or higher).
+SELFTEST step 226/245: build endgame SNIPER NaturesPower
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge endorsed: Adept Enchanter.
+SELFTEST step 227/245: build endgame SNIPER SpiritHawk
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge endorsed: Adept Enchanter.
+SELFTEST step 228/245: build endgame WARDEN SpectralBlades
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge endorsed: Adept Enchanter.
+SELFTEST step 229/245: build endgame WARDEN NaturesPower
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge endorsed: Adept Enchanter.
+SELFTEST step 230/245: build endgame WARDEN SpiritHawk
+[GAME] @@ Badge endorsed: Novice Enchanter.
+[GAME] @@ Badge endorsed: Adept Enchanter.
+SELFTEST step 231/245: build mid-game DUELIST
+SELFTEST step 232/245: build endgame CHAMPION Challenge
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 233/245: build endgame CHAMPION ElementalStrike
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 234/245: build endgame CHAMPION Feint
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 235/245: build endgame MONK Challenge
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 236/245: build endgame MONK ElementalStrike
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 237/245: build endgame MONK Feint
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 238/245: build mid-game CLERIC
+SELFTEST step 239/245: build endgame PRIEST AscendedForm
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 240/245: build endgame PRIEST Trinity
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 241/245: build endgame PRIEST PowerOfMany
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 242/245: build endgame PALADIN AscendedForm
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST watchdog: frame 2220
+SELFTEST step 243/245: build endgame PALADIN Trinity
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 244/245: build endgame PALADIN PowerOfMany
+[GAME] @@ Badge endorsed: Novice Enchanter.
+SELFTEST step 245/245: update check
+SELFTEST update check: this build 42, latest on GitHub 35
+SELFTEST finished: 245 steps, 0 failures
+SELFTEST PASS
+[Controllers] removed manager for application, 0 managers active
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/selftest-1793190712446.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/spd-duel/spd-duel/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 29s
+13 actionable tasks: 7 executed, 6 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.0/userguide/configuration_cache_enabling.html
