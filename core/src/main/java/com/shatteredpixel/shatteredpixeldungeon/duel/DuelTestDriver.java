@@ -182,7 +182,7 @@ public class DuelTestDriver {
 					long idle = System.currentTimeMillis() - lastProgress;
 					if (idle > 30000) {
 						log("STALL: nothing happened for 30s (current player " + DuelGame.currentPlayer()
-								+ ", my turn " + DuelGame.myTurn() + ")");
+								+ ", my turn " + DuelGame.myTurn() + ") " + DuelGame.debugState());
 						dumpThreads();
 						exit(2);
 					}

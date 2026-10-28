@@ -89,6 +89,10 @@ public class DuelController extends Actor {
 		Director.playing = null;
 	}
 
+	String debugState() {
+		return "waiting=" + waiting + " cooldown=" + cooldown();
+	}
+
 	/** My hero has used its turn: act right now, ahead of my hero. */
 	public void bringForward() {
 		timeToNow();

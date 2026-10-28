@@ -995,7 +995,20 @@ public class DuelGame {
 	 */
 	static final Object TURN_LOCK = new Object();
 
+	/** Test runs: everything about whose turn it is, for when a match gets stuck. */
+	static String debugState() {
+		DuelController c = controller;
+		Hero h = Dungeon.hero;
+		return "myTurn=" + myTurn + " current=" + current + " actions=" + actionsThisTurn
+				+ " turnStart=" + turnStart + " now=" + Actor.now()
+				+ " controller[" + (c == null ? "none" : c.debugState()) + "]"
+				+ " hero[ready=" + (h != null && h.ready) + " cooldown=" + (h != null ? h.cooldown() : -1)
+				+ " paralysed=" + (h != null ? h.paralysed : -1) + "]"
+				+ " processing=" + Actor.processing() + " thread=" + Thread.currentThread().getName();
+	}
+
 	static void startMyTurn() {
+		DuelTestDriver.log("TURN start: " + debugState());
 		actionsThisTurn = 0;
 		turnStart = Actor.now();
 		beginRecording();
@@ -1066,6 +1079,7 @@ public class DuelGame {
 
 		myTurn = false;
 		current = nextAlive(myId);
+		DuelTestDriver.log("TURN finish: " + debugState());
 	}
 
 	// ------------------------------------------------------------------ recording my turn
@@ -1302,6 +1316,7 @@ public class DuelGame {
 	static void turnPlayedBack(int from) {
 		if (over) return;
 		if (current == from) current = nextAlive(from);
+		DuelTestDriver.log("TURN played back from " + from + ": " + debugState());
 	}
 
 	/** Is it my turn now? Called by the director when it has nothing else to do. */
