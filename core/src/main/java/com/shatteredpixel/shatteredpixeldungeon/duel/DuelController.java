@@ -67,18 +67,21 @@ public class DuelController extends Actor {
 			return true;
 		}
 
-		if (DuelGame.myTurn()) {
-			if (DuelGame.actionsThisTurn() == 0) {
-				//my hero hasn't acted yet this turn; look in again after one tick
-				spend(TICK);
-				return true;
+		synchronized (DuelGame.TURN_LOCK) {
+			if (DuelGame.myTurn()) {
+				if (DuelGame.actionsThisTurn() == 0) {
+					//my hero hasn't acted yet this turn; look in again after one tick
+					waiting = false;
+					spend(TICK);
+					return true;
+				}
+				DuelGame.finishMyTurn();
 			}
-			DuelGame.finishMyTurn();
-		}
 
-		//not my turn: hold the queue until the director hands the turn back
-		waiting = true;
-		return false;
+			//not my turn: hold the queue until the director hands the turn back
+			waiting = true;
+			return false;
+		}
 	}
 
 	/** A new match (or leaving one): forget any half-played turn. */
@@ -138,10 +141,12 @@ public class DuelController extends Actor {
 			}
 
 			if (DuelGame.shouldStartMyTurn()) {
-				DuelGame.startMyTurn();
+				synchronized (DuelGame.TURN_LOCK) {
+					DuelGame.startMyTurn();
+					DuelController c = DuelGame.controller();
+					if (c != null) c.wake();
+				}
 				DuelTestDriver.progress("my turn starts at time " + Actor.now());
-				DuelController c = DuelGame.controller();
-				if (c != null) c.wake();
 			}
 		}
 

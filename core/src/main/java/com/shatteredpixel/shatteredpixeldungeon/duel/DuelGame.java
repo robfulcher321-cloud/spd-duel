@@ -989,11 +989,17 @@ public class DuelGame {
 	public static boolean myTurn() { return myTurn; }
 	public static int actionsThisTurn() { return actionsThisTurn; }
 
+	/**
+	 * Handing the turn over is one step: the screen saying "your turn now" and the game loop
+	 * deciding "not my turn, wait" must never interleave, or each can assume the other moves first.
+	 */
+	static final Object TURN_LOCK = new Object();
+
 	static void startMyTurn() {
-		myTurn = true;
 		actionsThisTurn = 0;
 		turnStart = Actor.now();
 		beginRecording();
+		myTurn = true;
 	}
 
 	/** Called by the hero whenever it spends time: that's one action of my turn. */
