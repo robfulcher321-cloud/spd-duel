@@ -166,6 +166,14 @@ public class DuelSelfTest extends Gizmo {
 				if (!DuelGame.amPicking() || !DuelGame.me().picking) throw new RuntimeException("not shown as choosing a hero");
 			}
 		});
+		add("lobby leave confirmation", true, new Runnable() {
+			public void run() {
+				WndLobby l = new WndLobby(true, null);
+				Game.scene().addToFront(l);
+				l.onBackPressed();
+				if (!DuelGame.inLobby()) throw new RuntimeException("back button left the lobby without asking");
+			}
+		});
 		add("leave lobby", false, new Runnable() {
 			public void run() {
 				DuelGame.cancelLobby();

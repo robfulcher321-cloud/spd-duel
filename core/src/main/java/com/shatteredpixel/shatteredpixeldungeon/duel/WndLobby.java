@@ -50,6 +50,19 @@ public class WndLobby extends Window implements DuelGame.LobbyListener, DuelChat
 		this.host = host;
 		this.status = status;
 		DuelChat.watch(this);
+
+		//tapping outside the lobby used to close it (and leave the match): now it does nothing
+		remove(blocker);
+		blocker.destroy();
+		blocker = new com.watabou.noosa.PointerArea(0, 0, PixelScene.uiCamera.width, PixelScene.uiCamera.height) {
+			@Override
+			protected void onClick(com.watabou.input.PointerEvent event) {
+				//ignore
+			}
+		};
+		blocker.camera = PixelScene.uiCamera;
+		addToBack(blocker);
+
 		rebuild();
 	}
 
@@ -204,10 +217,10 @@ public class WndLobby extends Window implements DuelGame.LobbyListener, DuelChat
 		parts.add(chatBtn);
 		y = chatBtn.bottom() + 3;
 
-		RedButton leave = new RedButton("Leave") {
+		RedButton leave = new RedButton("Back to menu") {
 			@Override
 			protected void onClick() {
-				onBackPressed();
+				confirmLeave();
 			}
 		};
 		leave.setRect(0, y, w, 18);
@@ -218,10 +231,27 @@ public class WndLobby extends Window implements DuelGame.LobbyListener, DuelChat
 		resize(w, (int) y);
 	}
 
+	/** The phone's back button: ask first, so a lobby isn't left by accident. */
 	@Override
 	public void onBackPressed() {
+		confirmLeave();
+	}
+
+	private void confirmLeave() {
+		WndDuel.show(new WndOptions("Leave the lobby?",
+				host ? "You're hosting, so this closes the lobby and sends everyone in it back to the menu."
+					 : "You can join again from Duel > Join a match.",
+				"Stay", "Leave") {
+			@Override
+			protected void onSelect(int index) {
+				if (index == 1) leave();
+			}
+		});
+	}
+
+	private void leave() {
 		DuelGame.cancelLobby();
-		super.onBackPressed();
+		hide();
 	}
 
 	@Override
