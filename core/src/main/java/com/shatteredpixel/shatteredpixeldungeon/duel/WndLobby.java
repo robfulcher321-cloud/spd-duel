@@ -127,10 +127,11 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 			//---- players
 			y = text("Players (" + players.size() + "/" + DuelGame.MAX_PLAYERS + ")", 7, y, TITLE_COLOR).bottom() + 2;
 			for (final DuelGame.Player p : players) {
-				String label = p.name;
+				String label = p.who();
 				if (p.id == 0) label += "  - host";
 				if (p.id == DuelGame.myId()) label += "  (you)";
 				if (teams) label = (p.team == 0 ? "[A] " : "[B] ") + label;
+				label += "\n" + (p.picking ? "choosing a hero..." : p.name);
 
 				DuelIcons.Row row = new DuelIcons.Row(label, DuelIcons.hero(p.cls, p.tier), null) {
 					@Override
@@ -139,12 +140,26 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 					}
 				};
 				if (teams) row.textColor(p.team == 0 ? TEAM_A : TEAM_B);
-				row.setRect(0, y, w, ROW);
+				if (p.picking) row.textColor(0xAAAAAA);
+				row.setRect(0, y, w, ROW + 4);
 				add(row);
 				parts.add(row);
-				y += ROW + 1;
+				y += ROW + 5;
 			}
-			y += 3;
+			y += 1;
+
+			//---- my hero and gear, changeable any time before the match starts
+			RedButton change = new RedButton("Change hero / loadout", 7) {
+				@Override
+				protected void onClick() {
+					WndDuel.changeHero();
+				}
+			};
+			change.icon(Icons.get(Icons.BACKPACK_LRG));
+			change.setRect(0, y, w, 18);
+			add(change);
+			parts.add(change);
+			y = change.bottom() + 4;
 		}
 
 		//---- start / status
@@ -188,6 +203,15 @@ public class WndLobby extends Window implements DuelGame.LobbyListener {
 	public void onBackPressed() {
 		DuelGame.cancelLobby();
 		super.onBackPressed();
+	}
+
+	@Override
+	public void update() {
+		super.update();
+		//I was choosing a hero but closed the pickers without finishing: I'm not choosing any more
+		if (DuelGame.amPicking() && !WndDuel.pickerOpen()) {
+			DuelGame.setPicking(false);
+		}
 	}
 
 	// ------------------------------------------------------------- lobby events (render thread)

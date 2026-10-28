@@ -63,7 +63,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class DuelGame {
 
 	//bump this whenever the message format changes, so mismatched builds refuse to play
-	public static final int PROTOCOL = 2;
+	public static final int PROTOCOL = 3;
 	public static final int MAX_PLAYERS = 4;
 
 	public static final int MODE_FFA = 0;
@@ -73,7 +73,9 @@ public class DuelGame {
 
 	public static class Player {
 		public int id;
-		public String name;
+		public String name;          //their hero, e.g. "Berserker (lvl 30)"
+		public String pname = "";    //the player's own name
+		public boolean picking;      //choosing a new hero in the lobby
 		public HeroClass cls = HeroClass.WARRIOR;
 		public int tier;
 		public int lvl;
@@ -91,6 +93,8 @@ public class DuelGame {
 			b.put("tier", tier);
 			b.put("lvl", lvl);
 			b.put("team", team);
+			b.put("pname", pname);
+			b.put("picking", picking);
 			if (withHero && hero != null) b.put("hero", hero);
 			return b;
 		}
@@ -103,8 +107,15 @@ public class DuelGame {
 			p.tier = b.getInt("tier");
 			p.lvl = b.getInt("lvl");
 			p.team = b.getInt("team");
+			p.pname = b.getString("pname");
+			p.picking = b.getBoolean("picking");
 			if (b.contains("hero")) p.hero = b.getBundle("hero");
 			return p;
+		}
+
+		/** "Rob" or, if they never set a name, their hero. */
+		public String who() {
+			return pname == null || pname.isEmpty() ? name : pname;
 		}
 	}
 
@@ -141,13 +152,63 @@ public class DuelGame {
 		return player(myId);
 	}
 
+	// ------------------------------------------------------------------ my name
+
+	private static final String NAME_KEY = "duel_name";
+
+	public static String playerName() {
+		String n = "";
+		try {
+			n = com.watabou.utils.GameSettings.getString(NAME_KEY, "", 16);
+		} catch (Exception ignored) {}
+		if (n == null || n.trim().isEmpty()) {
+			n = "Player " + (100 + com.watabou.utils.Random.Int(900));
+			setPlayerName(n);
+		}
+		return n;
+	}
+
+	public static void setPlayerName(String n) {
+		if (n == null) return;
+		n = n.replace("|", "").replace("\n", " ").trim();
+		if (n.length() > 16) n = n.substring(0, 16);
+		if (n.isEmpty()) return;
+		try {
+			com.watabou.utils.GameSettings.put(NAME_KEY, n);
+		} catch (Exception ignored) {}
+		if (myHello != null) myHello.put("pname", n);
+	}
+
 	// ------------------------------------------------------------------ building my fighter
+
+	/** How my current hero was made, so each new lobby gets a fresh copy (full potions etc). */
+	public interface HeroRecipe {
+		void build() throws Exception;
+	}
+
+	private static HeroRecipe recipe;
+
+	/** Before hosting/joining: build my hero again from my last choice (or a default fighter). */
+	public static void rebuildMyHero() {
+		try {
+			if (recipe != null) {
+				recipe.build();
+				return;
+			}
+		} catch (Exception e) {
+			ShatteredPixelDungeon.reportException(e);
+		}
+		prepareTestHero(HeroClass.WARRIOR, new DuelLoadout());
+	}
 
 	/**
 	 * Loads a saved run's hero into memory to fight with. Only reads the save file;
 	 * nothing about the match is ever written back to it.
 	 */
-	public static void prepareHero(int slot) throws Exception {
+	public static void prepareHero(final int slot) throws Exception {
+		recipe = new HeroRecipe() {
+			public void build() throws Exception { prepareHero(slot); }
+		};
 		Dungeon.loadGame(slot, true);
 		Hero h = Dungeon.hero;
 		if (h == null) throw new Exception("That save has no hero");
@@ -192,7 +253,10 @@ public class DuelGame {
 	 * Mid-game test fighter: level 12, tier 1 and 2 talents filled in, class weapon +3,
 	 * mail armour +2, 13 strength and two healing potions. Every class gets the same budget.
 	 */
-	public static void prepareTestHero(HeroClass cls, DuelLoadout loadout) {
+	public static void prepareTestHero(final HeroClass cls, final DuelLoadout loadout) {
+		recipe = new HeroRecipe() {
+			public void build() { prepareTestHero(cls, loadout); }
+		};
 		Hero h = freshHero(cls);
 		h.duelSetLevel(TEST_LEVEL);
 		h.STR = 13; //base 10 plus the ~3 strength potions found by this point
@@ -221,7 +285,10 @@ public class DuelGame {
 	 * talent point spent, class weapon +10, plate-based class armour +10 (ability fully
 	 * charged), 18 strength, a maxed class artifact and three healing potions.
 	 */
-	public static void prepareEndgameHero(HeroClass cls, HeroSubClass sub, ArmorAbility ability, DuelLoadout loadout) {
+	public static void prepareEndgameHero(final HeroClass cls, final HeroSubClass sub, final ArmorAbility ability, final DuelLoadout loadout) {
+		recipe = new HeroRecipe() {
+			public void build() { prepareEndgameHero(cls, sub, ability, loadout); }
+		};
 		Hero h = freshHero(cls);
 		h.duelSetLevel(ENDGAME_LEVEL);
 		h.STR = 18; //base 10 plus all 8 strength potions in a run
@@ -277,6 +344,7 @@ public class DuelGame {
 		myHello.put("tier", h.tier());
 		myHello.put("lvl", h.lvl);
 		myHello.put("name", name);
+		myHello.put("pname", playerName());
 	}
 
 	public static String myLabel() {
@@ -320,6 +388,7 @@ public class DuelGame {
 
 	public static void hostLobby(LobbyListener l) {
 		resetState();
+		amPicking = false;
 		host = true;
 		inLobby = true;
 		lobby = l;
@@ -335,6 +404,7 @@ public class DuelGame {
 
 	public static void joinLobby(String ip, LobbyListener l) {
 		resetState();
+		amPicking = false;
 		host = false;
 		inLobby = true;
 		lobby = l;
@@ -342,13 +412,20 @@ public class DuelGame {
 	}
 
 	public static void cancelLobby() {
+		amPicking = false;
 		inLobby = false;
 		lobby = null;
 		DuelNet.close();
 	}
 
+	/** What the Join screen shows about my lobby: name|class|armour tier|hero|players|max|mode. */
 	private static String beaconText() {
-		return myLabel() + "  [" + players().size() + "/" + MAX_PLAYERS + "]";
+		Player me = me();
+		String hero = me != null ? me.name : myLabel();
+		String cls = me != null && me.cls != null ? me.cls.name() : "WARRIOR";
+		int tier = me != null ? me.tier : 0;
+		return playerName() + "|" + cls + "|" + tier + "|" + hero.replace("|", "") + "|"
+				+ players().size() + "|" + MAX_PLAYERS + "|" + (mode == MODE_TEAMS ? "Teams" : "Free-for-all");
 	}
 
 	private static Player playerFromHello(int id, Bundle hello) {
@@ -359,6 +436,7 @@ public class DuelGame {
 		p.tier = hello.getInt("tier");
 		p.lvl = hello.getInt("lvl");
 		p.hero = hello.getBundle("hero");
+		p.pname = hello.getString("pname");
 		return p;
 	}
 
@@ -379,10 +457,65 @@ public class DuelGame {
 		broadcastLobby();
 	}
 
+	/** I picked a new hero/loadout in the lobby: everyone sees it. */
+	public static void heroChanged() {
+		if (!inLobby || myHello == null) return;
+		if (host) {
+			Player me = me();
+			if (me != null) {
+				Player fresh = playerFromHello(me.id, myHello);
+				me.name = fresh.name;
+				me.cls = fresh.cls;
+				me.tier = fresh.tier;
+				me.lvl = fresh.lvl;
+				me.hero = fresh.hero;
+				me.pname = fresh.pname;
+				me.picking = false;
+			}
+			broadcastLobby();
+		} else {
+			Bundle b = new Bundle();
+			b.put("type", "hero");
+			b.put("hero", myHello.getBundle("hero"));
+			b.put("cls", myHello.getEnum("cls", HeroClass.class));
+			b.put("tier", myHello.getInt("tier"));
+			b.put("lvl", myHello.getInt("lvl"));
+			b.put("name", myHello.getString("name"));
+			b.put("pname", myHello.getString("pname"));
+			DuelNet.send(DuelNet.HOST_PEER, b);
+		}
+		DuelTestDriver.log("I changed my hero to " + myHello.getString("name"));
+	}
+
+	private static volatile boolean amPicking = false;
+
+	public static boolean amPicking() {
+		return amPicking;
+	}
+
+	/** I opened (or closed) the hero picker in the lobby; the others see "choosing a hero". */
+	public static void setPicking(boolean on) {
+		amPicking = on;
+		if (!inLobby) return;
+		if (host) {
+			Player me = me();
+			if (me != null) me.picking = on;
+			broadcastLobby();
+		} else {
+			Bundle b = new Bundle();
+			b.put("type", "picking");
+			b.put("on", on);
+			DuelNet.send(DuelNet.HOST_PEER, b);
+		}
+	}
+
 	/** Empty string if the host can start; otherwise why not. */
 	public static String startProblem() {
 		ArrayList<Player> ps = players();
 		if (ps.size() < 2) return "Waiting for at least one more player.";
+		for (Player p : ps) {
+			if (p.picking) return p.who() + " is choosing a hero.";
+		}
 		if (mode == MODE_TEAMS) {
 			boolean a = false, b = false;
 			for (Player p : ps) {
@@ -447,6 +580,7 @@ public class DuelGame {
 	}
 
 	private static void lobbyFail(final String reason) {
+		amPicking = false;
 		final LobbyListener l = lobby;
 		inLobby = false;
 		lobby = null;
@@ -534,6 +668,27 @@ public class DuelGame {
 			}
 			DuelTestDriver.log("lobby: player " + peer + " joined (" + p.name + ")");
 			broadcastLobby();
+
+		} else if ("hero".equals(type) && host && inLobby) {
+			Player p = player(peer);
+			if (p != null) {
+				p.hero = msg.getBundle("hero");
+				p.cls = msg.getEnum("cls", HeroClass.class);
+				p.tier = msg.getInt("tier");
+				p.lvl = msg.getInt("lvl");
+				p.name = msg.getString("name");
+				p.pname = msg.getString("pname");
+				p.picking = false;
+				DuelTestDriver.log("lobby: player " + peer + " changed hero to " + p.name);
+				broadcastLobby();
+			}
+
+		} else if ("picking".equals(type) && host && inLobby) {
+			Player p = player(peer);
+			if (p != null) {
+				p.picking = msg.getBoolean("on");
+				broadcastLobby();
+			}
 
 		} else if ("lobby".equals(type) && !host) {
 			mode = msg.getInt("mode");
@@ -674,7 +829,7 @@ public class DuelGame {
 	}
 
 	public static String describe(Player p) {
-		return p.name + (p.id == 0 ? " (host)" : "");
+		return p.who() + (p.pname != null && !p.pname.isEmpty() ? " (" + p.name + ")" : "") + (p.id == 0 ? " - host" : "");
 	}
 
 	// ------------------------------------------------------------------ turns

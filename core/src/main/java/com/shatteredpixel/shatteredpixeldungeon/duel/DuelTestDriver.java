@@ -79,6 +79,8 @@ public class DuelTestDriver {
 	private static boolean configured = false;
 	private static boolean pushed = false;
 	private static boolean threw = false;
+	private static int changeStep = 0;
+	private static int settle = 0;
 	private static boolean imaged = false;
 	private static boolean leapt = false;
 	private static DuelGame.LobbyListener pendingLobby = null;
@@ -109,6 +111,7 @@ public class DuelTestDriver {
 					@Override
 					public void call() {
 						HeroClass[] classes = {HeroClass.WARRIOR, HeroClass.DUELIST, HeroClass.ROGUE, HeroClass.HUNTRESS};
+						DuelGame.setPlayerName(host ? "HostBot" : "Bot" + seat);
 						if (host) {
 							DuelGame.prepareEndgameHero(HeroClass.WARRIOR, HeroSubClass.BERSERKER,
 									HeroClass.WARRIOR.armorAbilities()[0], new DuelLoadout());
@@ -116,7 +119,13 @@ public class DuelTestDriver {
 							DuelGame.prepareTestHero(classes[seat % classes.length], new DuelLoadout());
 						}
 						DuelGame.LobbyListener l = new DuelGame.LobbyListener() {
-							public void onLobbyChanged() { log("lobby now has " + DuelGame.players().size() + " players"); }
+							public void onLobbyChanged() {
+								StringBuilder sb = new StringBuilder();
+								for (DuelGame.Player p : DuelGame.players()) {
+									sb.append(" | ").append(p.who()).append(": ").append(p.picking ? "choosing a hero" : p.name);
+								}
+								log("lobby now has " + DuelGame.players().size() + " players" + sb);
+							}
 							public void onStatus(String text) { log("lobby: " + text); }
 							public void onFailed(String reason) { log("lobby FAILED: " + reason); exit(3); }
 						};
@@ -191,10 +200,29 @@ public class DuelTestDriver {
 			return;
 		}
 
-		//host: when everyone's in, set the teams and start
+		//joiner 1: change hero in the lobby, like a player tapping "Change hero / loadout"
+		if ("1".equals(env("SPD_DUELSEAT", "")) && DuelGame.inLobby() && DuelGame.me() != null && changeStep < 3) {
+			changeStep++;
+			if (changeStep == 1) {
+				DuelGame.setPicking(true);
+				log("LOBBY: opening the hero picker");
+			} else if (changeStep == 3) {
+				DuelGame.prepareTestHero(HeroClass.HUNTRESS, new DuelLoadout());
+				DuelGame.heroChanged();
+				DuelGame.setPicking(false);
+				log("LOBBY: changed hero to " + Dungeon.hero.heroClass);
+			}
+			return;
+		}
+
+		//host: when everyone's in (and nobody is still choosing), set the teams and start
 		if ("host".equals(mode()) && DuelGame.inLobby() && !configured) {
 			int want = Integer.parseInt(env("SPD_DUELPLAYERS", "2"));
-			if (DuelGame.players().size() >= want) {
+			if (DuelGame.players().size() >= want && settle++ >= 10) {
+				if (!DuelGame.startProblem().isEmpty()) {
+					log("not starting yet: " + DuelGame.startProblem());
+					return;
+				}
 				configured = true;
 				if ("2v1".equals(env("SPD_DUELMODE", "ffa"))) {
 					DuelGame.setMode(DuelGame.MODE_TEAMS);

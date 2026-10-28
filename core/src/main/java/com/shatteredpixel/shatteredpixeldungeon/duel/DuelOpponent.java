@@ -73,7 +73,7 @@ public class DuelOpponent extends Mob {
 	@Override
 	public String name() {
 		if (owner == null) return "Opponent";
-		return owner.name + (ally ? " (ally)" : "");
+		return owner.who() + (ally ? " (ally)" : "");
 	}
 
 	@Override

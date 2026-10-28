@@ -48,17 +48,54 @@ public class WndDuel extends WndOptions {
 	public WndDuel() {
 		super("Duel",
 				"Fight up to 3 other players' heroes, phone to phone on the same Wi-Fi (or ZeroTier). " +
-				"Free-for-all or teams. Use a hero from a saved run (the run isn't changed) or a test fighter.",
-				"Host a match", "Join a match");
+				"Free-for-all or teams. You pick your hero and gear in the match lobby: a hero from a saved " +
+				"run (the run isn't changed) or a test fighter.",
+				"Host a match", "Join a match", "Your name: " + DuelGame.playerName());
+	}
+
+	@Override
+	protected boolean hasIcon(int index) { return getIcon(index) != null; }
+
+	@Override
+	protected Image getIcon(int index) {
+		return index == 0 ? Icons.get(Icons.CHALLENGE_COLOR) : index == 1 ? Icons.get(Icons.MAGNIFY) : Icons.get(Icons.SCROLL_COLOR);
 	}
 
 	@Override
 	protected void onSelect(int index) {
-		pickHero(index == 0);
+		if (index == 0) {
+			DuelGame.rebuildMyHero();
+			startHosting();
+		} else if (index == 1) {
+			show(new WndJoin());
+		} else {
+			show(new WndTextInput("Your name", "Shown to the other players in the lobby and on the Join list.",
+					DuelGame.playerName(), 16, false, "Save", "Cancel") {
+				@Override
+				public void onSelect(boolean positive, String text) {
+					if (positive) DuelGame.setPlayerName(text);
+					show(new WndDuel());
+				}
+			});
+		}
 	}
 
+	/** From the lobby: choose a new hero and loadout. The others see "choosing a hero" meanwhile. */
+	public static void changeHero() {
+		DuelGame.setPicking(true);
+		pickHero();
+	}
+
+	private static Window lastShown;
+
 	private static void show(Window w) {
+		lastShown = w;
 		Game.scene().addToFront(w);
+	}
+
+	/** A hero picker (or its loadout screen) is still open. */
+	static boolean pickerOpen() {
+		return lastShown != null && lastShown.parent != null && !(lastShown instanceof WndLobby);
 	}
 
 	private static int width() {
@@ -67,7 +104,7 @@ public class WndDuel extends WndOptions {
 
 	// ------------------------------------------------------------------ hero picker
 
-	private static void pickHero(final boolean hosting) {
+	private static void pickHero() {
 		final ArrayList<GamesInProgress.Info> runs = GamesInProgress.checkAll();
 
 		//saved runs first, then the ready-made test fighters
@@ -110,7 +147,7 @@ public class WndDuel extends WndOptions {
 			@Override
 			protected void onSelect(int index) {
 				if (index == runs.size()) {
-					pickTestFighter(hosting);
+					pickTestFighter();
 					return;
 				}
 				int slot = runs.get(index).slot;
@@ -121,12 +158,12 @@ public class WndDuel extends WndOptions {
 					show(new WndOptions("Couldn't load hero", "That save couldn't be read.", "OK"));
 					return;
 				}
-				heroReady(hosting);
+				heroReady();
 			}
 		});
 	}
 
-	static void pickTestFighter(final boolean hosting) {
+	static void pickTestFighter() {
 		show(new WndOptions("Test fighter", "How far along should your fighter be?",
 				"Mid-game (level " + DuelGame.TEST_LEVEL + ")",
 				"Endgame (level " + DuelGame.ENDGAME_LEVEL + ")") {
@@ -159,12 +196,12 @@ public class WndDuel extends WndOptions {
 
 			@Override
 			protected void onSelect(int index) {
-				pickTestClass(hosting, index == 1);
+				pickTestClass(index == 1);
 			}
 		});
 	}
 
-	static void pickTestClass(final boolean hosting, final boolean endgame) {
+	static void pickTestClass(final boolean endgame) {
 		final HeroClass[] classes = HeroClass.values();
 		String[] labels = new String[classes.length];
 		for (int i = 0; i < classes.length; i++) {
@@ -196,15 +233,15 @@ public class WndDuel extends WndOptions {
 			@Override
 			protected void onSelect(int index) {
 				if (endgame) {
-					pickSubclass(hosting, classes[index]);
+					pickSubclass(classes[index]);
 				} else {
-					build(hosting, classes[index], null, null);
+					build(classes[index], null, null);
 				}
 			}
 		});
 	}
 
-	static void pickSubclass(final boolean hosting, final HeroClass cls) {
+	static void pickSubclass(final HeroClass cls) {
 		final HeroSubClass[] subs = cls.subClasses();
 		String[] labels = new String[subs.length];
 		for (int i = 0; i < subs.length; i++) {
@@ -229,12 +266,12 @@ public class WndDuel extends WndOptions {
 
 			@Override
 			protected void onSelect(int index) {
-				pickAbility(hosting, cls, subs[index]);
+				pickAbility(cls, subs[index]);
 			}
 		});
 	}
 
-	static void pickAbility(final boolean hosting, final HeroClass cls, final HeroSubClass sub) {
+	static void pickAbility(final HeroClass cls, final HeroSubClass sub) {
 		final ArmorAbility[] abilities = cls.armorAbilities();
 		String[] labels = new String[abilities.length];
 		for (int i = 0; i < abilities.length; i++) {
@@ -259,21 +296,21 @@ public class WndDuel extends WndOptions {
 
 			@Override
 			protected void onSelect(int index) {
-				build(hosting, cls, sub, abilities[index]);
+				build(cls, sub, abilities[index]);
 			}
 		});
 	}
 
-	private static void build(final boolean hosting, final HeroClass cls, final HeroSubClass sub, final ArmorAbility ability) {
+	private static void build(final HeroClass cls, final HeroSubClass sub, final ArmorAbility ability) {
 		show(new WndLoadout(cls, sub != null, new WndLoadout.Done() {
 			@Override
 			public void onReady(DuelLoadout loadout) {
-				buildWith(hosting, cls, sub, ability, loadout);
+				buildWith(cls, sub, ability, loadout);
 			}
 		}));
 	}
 
-	private static void buildWith(boolean hosting, HeroClass cls, HeroSubClass sub, ArmorAbility ability, DuelLoadout loadout) {
+	private static void buildWith(HeroClass cls, HeroSubClass sub, ArmorAbility ability, DuelLoadout loadout) {
 		try {
 			if (sub == null) {
 				DuelGame.prepareTestHero(cls, loadout);
@@ -285,15 +322,12 @@ public class WndDuel extends WndOptions {
 			show(new WndOptions("Couldn't make fighter", "Something went wrong building that hero.", "OK"));
 			return;
 		}
-		heroReady(hosting);
+		heroReady();
 	}
 
-	private static void heroReady(boolean hosting) {
-		if (hosting) {
-			startHosting();
-		} else {
-			show(new WndJoin());
-		}
+	private static void heroReady() {
+		DuelGame.heroChanged();
+		DuelGame.setPicking(false);
 	}
 
 	// ------------------------------------------------------------------ hosting
@@ -358,21 +392,27 @@ public class WndDuel extends WndOptions {
 			RenderedTextBlock text = PixelScene.renderTextBlock(6);
 			text.text(hosts.isEmpty()
 					? "Looking for hosted matches on your Wi-Fi, hotspot and ZeroTier networks...\n\nThe host needs to be sitting in their lobby. If nothing shows up within about 10 seconds, you can still type the IP shown in the host's lobby."
-					: "Tap a game to join it:", w);
+					: "Hosted matches nearby. Tap one to join; you'll pick your hero and gear in the lobby.", w);
 			text.setPos(0, y);
 			add(text);
 			parts.add(text);
 			y = text.bottom() + 6;
 
 			for (final DuelNet.FoundHost h : hosts) {
-				RedButton b = new RedButton(h.label + "  (" + h.ip + ")") {
+				final boolean full = h.players() >= h.maxPlayers();
+				HeroClass cls = HeroClass.WARRIOR;
+				try { cls = HeroClass.valueOf(h.heroClass()); } catch (Exception ignored) {}
+				String label = h.hostName() + "'s game" + (full ? "  (full)" : "")
+						+ "\n" + h.hero() + "  -  " + h.players() + "/" + h.maxPlayers() + " players"
+						+ (h.mode().isEmpty() ? "" : "  -  " + h.mode());
+				DuelIcons.Row b = new DuelIcons.Row(label, DuelIcons.hero(cls, h.armorTier()), null) {
 					@Override
 					protected void onClick() {
-						connect(h.ip);
+						if (!full) connect(h.ip);
 					}
 				};
-				b.multiline = true;
-				b.setRect(0, y, w, 18);
+				if (full) b.textColor(0x888888);
+				b.setRect(0, y, w, 26);
 				add(b);
 				parts.add(b);
 				y = b.bottom() + 2;
@@ -414,6 +454,7 @@ public class WndDuel extends WndOptions {
 
 		private void connect(String ip) {
 			DuelNet.stopDiscovery();
+			DuelGame.rebuildMyHero();
 			hide();
 			WndLobby lobby = new WndLobby(false, "Connecting to " + ip + "...");
 			show(lobby);

@@ -137,6 +137,38 @@ public class DuelSelfTest extends Gizmo {
 
 	private void buildSteps() {
 		add("duel menu", true, new Runnable() { public void run() { Game.scene().addToFront(new WndDuel()); } });
+		add("join list", true, new Runnable() {
+			public void run() {
+				Game.scene().addToFront(new WndDuel.WndJoin());
+				DuelNet.fakeHostForTest("192.168.1.20", "Rob|WARRIOR|6|Berserker (lvl 30)|2|4|Free-for-all");
+				DuelNet.fakeHostForTest("192.168.1.31", "Sam|MAGE|3|Test Mage (lvl 12)|4|4|Teams");
+			}
+		});
+		add("lobby", true, new Runnable() {
+			public void run() {
+				DuelNet.stopDiscovery();
+				DuelGame.setPlayerName("Rob");
+				DuelGame.rebuildMyHero();
+				WndLobby l = new WndLobby(true, null);
+				Game.scene().addToFront(l);
+				DuelGame.hostLobby(l);
+			}
+		});
+		add("lobby, choosing a hero", true, new Runnable() {
+			public void run() {
+				WndLobby l = new WndLobby(true, null);
+				Game.scene().addToFront(l);
+				DuelGame.setLobbyListener(l);
+				WndDuel.changeHero();
+				if (!DuelGame.amPicking() || !DuelGame.me().picking) throw new RuntimeException("not shown as choosing a hero");
+			}
+		});
+		add("leave lobby", false, new Runnable() {
+			public void run() {
+				DuelGame.cancelLobby();
+				if (DuelGame.amPicking()) throw new RuntimeException("still marked as choosing after closing the pickers");
+			}
+		});
 
 		for (final HeroClass cls : HeroClass.values()) {
 			add("class info " + cls, cls == HeroClass.MAGE, new Runnable() { public void run() { DuelInfo.heroClass(cls); } });
@@ -149,10 +181,10 @@ public class DuelSelfTest extends Gizmo {
 			}
 		}
 
-		add("class menu (endgame)", true, new Runnable() { public void run() { WndDuel.pickTestClass(false, true); } });
-		add("subclass menu", true, new Runnable() { public void run() { WndDuel.pickSubclass(false, HeroClass.MAGE); } });
-		add("ability menu", true, new Runnable() { public void run() { WndDuel.pickAbility(false, HeroClass.MAGE, HeroSubClass.BATTLEMAGE); } });
-		add("level menu", true, new Runnable() { public void run() { WndDuel.pickTestFighter(false); } });
+		add("class menu (endgame)", true, new Runnable() { public void run() { WndDuel.pickTestClass(true); } });
+		add("subclass menu", true, new Runnable() { public void run() { WndDuel.pickSubclass(HeroClass.MAGE); } });
+		add("ability menu", true, new Runnable() { public void run() { WndDuel.pickAbility(HeroClass.MAGE, HeroSubClass.BATTLEMAGE); } });
+		add("level menu", true, new Runnable() { public void run() { WndDuel.pickTestFighter(); } });
 
 		for (final HeroClass cls : HeroClass.values()) {
 			add("loadout " + cls, cls == HeroClass.ROGUE, new Runnable() {

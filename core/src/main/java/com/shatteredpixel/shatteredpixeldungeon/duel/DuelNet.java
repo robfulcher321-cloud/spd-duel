@@ -58,7 +58,7 @@ public class DuelNet {
 	public static final int UDP_PORT = 52901;
 	//the host answers "anyone hosting?" questions sent straight to it on this port
 	public static final int PROBE_PORT = 52902;
-	private static final String BEACON_TAG = "SPDDUEL2";
+	private static final String BEACON_TAG = "SPDDUEL3";
 	private static final int MAX_MESSAGE = 4 * 1024 * 1024;
 
 	public static final int HOST_PEER = 0;
@@ -77,7 +77,29 @@ public class DuelNet {
 		FoundHost(String ip, String label) {
 			this.ip = ip;
 			this.label = label;
+			this.parts = label.split("\\|", -1);
 		}
+
+		//label is name|class|armour tier|hero|players|max|mode
+		private final String[] parts;
+
+		private String part(int i, String def) {
+			return i < parts.length && !parts[i].isEmpty() ? parts[i] : def;
+		}
+
+		public String hostName() { return part(0, "Someone"); }
+		public String heroClass() { return part(1, "WARRIOR"); }
+		public int armorTier() {
+			try { return Integer.parseInt(part(2, "0")); } catch (Exception e) { return 0; }
+		}
+		public String hero() { return part(3, "?"); }
+		public int players() {
+			try { return Integer.parseInt(part(4, "1")); } catch (Exception e) { return 1; }
+		}
+		public int maxPlayers() {
+			try { return Integer.parseInt(part(5, "4")); } catch (Exception e) { return 4; }
+		}
+		public String mode() { return part(6, ""); }
 	}
 
 	/** One open connection to another phone. */
@@ -442,6 +464,15 @@ public class DuelNet {
 		};
 		t.setDaemon(true);
 		t.start();
+	}
+
+	/** Self-test only: pretend a host was heard. */
+	static void fakeHostForTest(String ip, String label) {
+		synchronized (found) {
+			FoundHost h = new FoundHost(ip, label);
+			h.lastSeen = System.currentTimeMillis() + 60000;
+			found.put(ip, h);
+		}
 	}
 
 	public static ArrayList<FoundHost> foundHosts() {
