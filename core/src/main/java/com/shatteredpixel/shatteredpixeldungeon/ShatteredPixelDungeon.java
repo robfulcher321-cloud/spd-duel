@@ -111,7 +111,6 @@ public class ShatteredPixelDungeon extends Game {
 		}
 	}
 	
-	@Override
 	//SPD Duel: let the other players know when this phone switches away and back
 	@Override
 	public void pause() {
